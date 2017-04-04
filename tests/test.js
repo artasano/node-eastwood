@@ -2,12 +2,20 @@
 // var EastWood = require('../libs/eastwood').EastWood;
 var EastWood = require('../libs/index').EastWood;
 
-// EastWood(100);
+const ew = new EastWood();
 
-const obj = new EastWood(10);
-console.log('Returned ' + obj.add(3, function(val) { console.log('Callback ' + val); }));
+const s1 = ew.createSubscriber(10);
+// also works
+// var Subscriber = require('../libs/index').Subscriber;
+// const s1 = new Subscriber(10);
+console.log('Returned '
++ s1.add(3, function(sub) {
+    console.log('Callback ' + sub.getValue());
+  }));
 
-const obj2 = new EastWood(20);
-console.log('Returned ' + obj2.add(3, function(val) { console.log('Callback ' + val); }));
+const s2 = ew.createSubscriber(20);
+console.log('Returned ' + s2.add(3, function(sub) {
+    console.log('Callback ' + sub.getValue());
+  }));
 
 process.exit(0);

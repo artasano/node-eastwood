@@ -15,73 +15,78 @@ using v8::String;
 using v8::Value;
 using v8::Exception;
 
-Persistent<Function> EastWood::constructor;
+Persistent<Function> Subscriber::constructor;
 
-EastWood::EastWood(double value) : value_(value) {
+Subscriber::Subscriber(double value) : value_(value) {
 }
 
-EastWood::~EastWood() {
+Subscriber::~Subscriber() {
 }
 
-void EastWood::Init(Local<Object> exports) {
-  Isolate* isolate = exports->GetIsolate();
+void Subscriber::Init(Local<Object> exports) {
+  HandleScope scope;
 
   // Prepare constructor template
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(isolate, New);
-  tpl->SetClassName(String::NewFromUtf8(isolate, "EastWood"));
+  auto tpl = FunctionTemplate::New(isolate, New);
+  tpl->SetClassName(String::NewFromUtf8(isolate, "Subscriber"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   // Prototype
   NODE_SET_PROTOTYPE_METHOD(tpl, "add", Add);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "getValue", GetValue);
 
   constructor.Reset(isolate, tpl->GetFunction());
-  exports->Set(String::NewFromUtf8(isolate, "EastWood"),
+  exports->Set(String::NewFromUtf8(isolate, "Subscriber"),
                tpl->GetFunction());
 }
 
-void EastWood::New(const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
+void Subscriber::New(const FunctionCallbackInfo<Value>& args) {
+  HandleScope scope;
 
   if (args.IsConstructCall()) {
-    // Invoked as constructor: `new EastWood(...)`
-    double value = args[0]->IsUndefined() ? 0 : args[0]->NumberValue();
-    EastWood* obj = new EastWood(value);
+    // Check the number of arguments passed.
+    if (args.Length() < 1) {
+      // Throw an Error that is passed back to JavaScript
+      isolate->ThrowException(Exception::TypeError(
+          String::NewFromUtf8(isolate, "Wrong number of arguments")));
+      return;
+    }
+
+    // Check the argument types
+    if (!args[0]->IsNumber()) {
+      isolate->ThrowException(Exception::TypeError(
+          String::NewFromUtf8(isolate, "Wrong arguments")));
+      return;
+    }
+    // construct
+    double value = args[0]->NumberValue();
+    auto obj = new Subscriber(value);
     obj->Wrap(args.This());
     args.GetReturnValue().Set(args.This());
   } else {
-/*
-    // Invoked as plain function `EastWood(...)`, turn into construct call.
-    const int argc = 1;
-    Local<Value> argv[argc] = { args[0] };
-    Local<Context> context = isolate->GetCurrentContext();
-    Local<Function> cons = Local<Function>::New(isolate, constructor);
-    Local<Object> result =
-        cons->NewInstance(context, argc, argv).ToLocalChecked();
-    args.GetReturnValue().Set(result);
-*/
-    isolate->ThrowException(Exception::SyntaxError(
+    scope.GetIsolate()->ThrowException(Exception::SyntaxError(
         String::NewFromUtf8(isolate, "Use 'new' to instantiate EastWood")));
     return;
-
   }
 }
 
-/*
-void EastWood::PlusOne(const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
+void Subscriber::NewInstance(const FunctionCallbackInfo<Value>& args) {
+  auto isolate = args.GetIsolate();
 
-  EastWood* obj = ObjectWrap::Unwrap<EastWood>(args.Holder());
-  obj->value_ += 1;
+  // arg checks are done in ctor
+  const unsigned argc = 1;
+  Local<Value> argv[argc] = { args[0] };
+  Local<Function> cons = Local<Function>::New(isolate, constructor);
+  Local<Context> context = isolate->GetCurrentContext();
+  Local<Object> instance =
+      cons->NewInstance(context, argc, argv).ToLocalChecked();
 
-  args.GetReturnValue().Set(Number::New(isolate, obj->value_));
+  args.GetReturnValue().Set(instance);
 }
-*/
 
-// This is the implementation of the "add" method
-// Input arguments are passed using the
-// const FunctionCallbackInfo<Value>& args struct
-void EastWood::Add(const FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = args.GetIsolate();
+// double(double, cb), cb: void(Subscriber);
+void Subscriber::Add(const FunctionCallbackInfo<Value>& args) {
+  auto isolate = args.GetIsolate();
 
   // Check the number of arguments passed.
   if (args.Length() < 2) {
@@ -98,21 +103,82 @@ void EastWood::Add(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
-  // Perform the operation
-  EastWood* obj = ObjectWrap::Unwrap<EastWood>(args.Holder());
-  double value = args[0]->NumberValue() + obj->value_;
-  Local<Number> num = Number::New(isolate, value);
+  // perform the operation
+  auto obj = ObjectWrap::Unwrap<Subscriber>(args.Holder());
+  double value = args[0]->NumberValue();
+  obj->value_ += value;
 
-  // Set the return value (using the passed in
-  // FunctionCallbackInfo<Value>&)
-  args.GetReturnValue().Set(num);
+  // set the return value
+  args.GetReturnValue().Set(Number::New(isolate, obj->value_));
 
   // also callback
-  Local<Function> cb = Local<Function>::Cast(args[1]);
+  auto cb = Local<Function>::Cast(args[1]);
   const unsigned argc = 1;
-  Local<Value> argv[argc] = { num };
+  Local<Value> argv[argc] = { args.Holder() };
   cb->Call(Null(isolate), argc, argv);
+}
 
+void Subscriber::GetValue(const FunctionCallbackInfo<Value>& args) {
+  auto isolate = args.GetIsolate();
+
+  // set the return value
+  Subscriber* obj = ObjectWrap::Unwrap<Subscriber>(args.Holder());
+  args.GetReturnValue().Set(Number::New(isolate, obj->value_));
+}
+
+// --------------------------------------------
+
+Persistent<Function> EastWood::constructor;
+
+EastWood::EastWood() {
+}
+
+EastWood::~EastWood() {
+}
+
+void EastWood::Init(Local<Object> exports) {
+  auto isolate = exports->GetIsolate();
+
+  // Prepare constructor template
+  auto tpl = FunctionTemplate::New(isolate, New);
+  tpl->SetClassName(String::NewFromUtf8(isolate, "EastWood"));
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  // Prototype
+  NODE_SET_PROTOTYPE_METHOD(tpl, "createSubscriber", CreateSubscriber);
+
+  constructor.Reset(isolate, tpl->GetFunction());
+  exports->Set(String::NewFromUtf8(isolate, "EastWood"),
+               tpl->GetFunction());
+}
+
+void EastWood::New(const FunctionCallbackInfo<Value>& args) {
+  auto isolate = args.GetIsolate();
+
+  if (args.IsConstructCall()) {
+    // Invoked as constructor: `new EastWood(...)`
+    auto obj = new EastWood();
+    obj->Wrap(args.This());
+    args.GetReturnValue().Set(args.This());
+  } else {
+    isolate->ThrowException(Exception::SyntaxError(
+        String::NewFromUtf8(isolate, "Use 'new' to instantiate EastWood")));
+    return;
+
+  }
+}
+
+// Subscriber(double)
+void EastWood::CreateSubscriber(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  auto isolate = args.GetIsolate();
+
+  // Arg checks are done in Subscriber ctor
+  const int argc = 1;
+  Local<Value> argv[argc] = { args[0] };
+  auto cons = Local<Function>::New(isolate, Subscriber::constructor);
+  auto context = isolate->GetCurrentContext();
+  auto instance = cons->NewInstance(context, argc, argv).ToLocalChecked();
+  args.GetReturnValue().Set(instance);
 }
 
 }  // namespace ew

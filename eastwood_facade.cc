@@ -8,6 +8,7 @@ using v8::Object;
 
 void InitAll(Local<Object> exports) {
   EastWood::Init(exports);
+  Subscriber::Init(exports);
 }
 
 NODE_MODULE(eastwood, InitAll)
