@@ -1,0 +1,29 @@
+{
+  "version": "0.1.0",
+  "command": "node-gyp",
+  "isShellCommand": true,
+  "args": [],
+  "showOutput": "always",
+  "echoCommand": true,
+  "suppressTaskName": true,
+  "tasks": [
+    {
+      "taskName": "rebuild",
+      "args": [
+        "rebuild"
+      ]
+    },
+    {
+      "taskName": "build",
+      "args": [
+        "build"
+      ]
+    },
+    {
+      "taskName": "clean",
+      "args": [
+        "clean"
+      ]
+    }
+  ]
+}}

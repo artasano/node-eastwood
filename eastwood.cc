@@ -13,6 +13,7 @@ using v8::Object;
 using v8::Persistent;
 using v8::String;
 using v8::Value;
+using v8::Exception;
 
 Persistent<Function> EastWood::constructor;
 
@@ -31,7 +32,7 @@ void EastWood::Init(Local<Object> exports) {
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   // Prototype
-  NODE_SET_PROTOTYPE_METHOD(tpl, "plusOne", PlusOne);
+  NODE_SET_PROTOTYPE_METHOD(tpl, "add", Add);
 
   constructor.Reset(isolate, tpl->GetFunction());
   exports->Set(String::NewFromUtf8(isolate, "EastWood"),
@@ -48,6 +49,7 @@ void EastWood::New(const FunctionCallbackInfo<Value>& args) {
     obj->Wrap(args.This());
     args.GetReturnValue().Set(args.This());
   } else {
+/*
     // Invoked as plain function `EastWood(...)`, turn into construct call.
     const int argc = 1;
     Local<Value> argv[argc] = { args[0] };
@@ -56,9 +58,15 @@ void EastWood::New(const FunctionCallbackInfo<Value>& args) {
     Local<Object> result =
         cons->NewInstance(context, argc, argv).ToLocalChecked();
     args.GetReturnValue().Set(result);
+*/
+    isolate->ThrowException(Exception::SyntaxError(
+        String::NewFromUtf8(isolate, "Use 'new' to instantiate EastWood")));
+    return;
+
   }
 }
 
+/*
 void EastWood::PlusOne(const FunctionCallbackInfo<Value>& args) {
   Isolate* isolate = args.GetIsolate();
 
@@ -66,6 +74,45 @@ void EastWood::PlusOne(const FunctionCallbackInfo<Value>& args) {
   obj->value_ += 1;
 
   args.GetReturnValue().Set(Number::New(isolate, obj->value_));
+}
+*/
+
+// This is the implementation of the "add" method
+// Input arguments are passed using the
+// const FunctionCallbackInfo<Value>& args struct
+void EastWood::Add(const FunctionCallbackInfo<Value>& args) {
+  Isolate* isolate = args.GetIsolate();
+
+  // Check the number of arguments passed.
+  if (args.Length() < 2) {
+    // Throw an Error that is passed back to JavaScript
+    isolate->ThrowException(Exception::TypeError(
+        String::NewFromUtf8(isolate, "Wrong number of arguments")));
+    return;
+  }
+
+  // Check the argument types
+  if (!args[0]->IsNumber() || !args[1]->IsFunction()) {
+    isolate->ThrowException(Exception::TypeError(
+        String::NewFromUtf8(isolate, "Wrong arguments")));
+    return;
+  }
+
+  // Perform the operation
+  EastWood* obj = ObjectWrap::Unwrap<EastWood>(args.Holder());
+  double value = args[0]->NumberValue() + obj->value_;
+  Local<Number> num = Number::New(isolate, value);
+
+  // Set the return value (using the passed in
+  // FunctionCallbackInfo<Value>&)
+  args.GetReturnValue().Set(num);
+
+  // also callback
+  Local<Function> cb = Local<Function>::Cast(args[1]);
+  const unsigned argc = 1;
+  Local<Value> argv[argc] = { num };
+  cb->Call(Null(isolate), argc, argv);
+
 }
 
 }  // namespace ew

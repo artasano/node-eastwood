@@ -2,7 +2,7 @@
   "name": "node-eastwood",
   "version": "0.0.1",
   "main" : "libs/index.js",
-  "private": "true",
+  "private": true,
   "repository": {
     "type": "git",
     "url": "git://github.com/artasano/node-eastwood.git"
