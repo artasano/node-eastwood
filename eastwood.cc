@@ -24,7 +24,7 @@ Subscriber::~Subscriber() {
 }
 
 void Subscriber::Init(Local<Object> exports) {
-  HandleScope scope;
+  auto isolate = exports->GetIsolate();
 
   // Prepare constructor template
   auto tpl = FunctionTemplate::New(isolate, New);
@@ -41,7 +41,7 @@ void Subscriber::Init(Local<Object> exports) {
 }
 
 void Subscriber::New(const FunctionCallbackInfo<Value>& args) {
-  HandleScope scope;
+  auto isolate = args.GetIsolate();
 
   if (args.IsConstructCall()) {
     // Check the number of arguments passed.
@@ -64,7 +64,7 @@ void Subscriber::New(const FunctionCallbackInfo<Value>& args) {
     obj->Wrap(args.This());
     args.GetReturnValue().Set(args.This());
   } else {
-    scope.GetIsolate()->ThrowException(Exception::SyntaxError(
+    isolate->ThrowException(Exception::SyntaxError(
         String::NewFromUtf8(isolate, "Use 'new' to instantiate EastWood")));
     return;
   }
