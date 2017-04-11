@@ -8,6 +8,12 @@
   "suppressTaskName": true,
   "tasks": [
     {
+      "taskName": "configure-build",
+      "args": [
+        "configure", "build"
+      ]
+    },
+    {
       "taskName": "rebuild",
       "args": [
         "rebuild"
@@ -16,7 +22,7 @@
     {
       "taskName": "build",
       "args": [
-        "build"
+        "build", "--verbose"
       ]
     },
     {

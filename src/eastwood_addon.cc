@@ -11,6 +11,6 @@ void InitAll(Local<Object> exports) {
   Subscriber::Init(exports);
 }
 
-NODE_MODULE(eastwood, InitAll)
+NODE_MODULE(eastwood_addon, InitAll)
 
 }  // namespace ew
