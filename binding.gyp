@@ -7,12 +7,78 @@
         "src/eastwood.cc"
       ],
 
+      # 'defines' does not work here
+      # 'defines': [
+      #   'AT_ENABLE_THREAD_ANNOTATIONS', 'AT_USE_LOCK_STYLE_THREAD_SAFETY_ATTRIBUTES'
+      # ],
+
+      # note: needs a patch with /usr/local/lib/node_modules/node-gyp/gyp/pylib/gyp/generator/make.py for cflags to take effect on Mac
       'cflags_cc': [
         '-std=c++14', '-g', '-stdlib=libc++', '-pipe',
         '-Qunused-arguments', '-Wno-unused-parameter', '-Wno-unused-function', '-Wno-shorten-64-to-32', '-Wno-attributes',
         '-Wthread-safety', '-Wno-unused-local-typedef', '-Wno-deprecated-register', '-Wno-unused-const-variable',
         '-Wno-unknown-warning-option', '-fstack-protector',
-        '-arch x86_64'
+        '-arch x86_64',
+        '-DAT_ENABLE_THREAD_ANNOTATIONS', '-DAT_USE_LOCK_STYLE_THREAD_SAFETY_ATTRIBUTES',
+        '-DAT_USE_BOOST_MUTEX',
+        '-DAT_USE_BOOST_THREAD',
+        '-DBOOST_SYSTEM_NO_DEPRECATED=1',
+        '-DCARBON_DEPRECATED=YES',
+        '-DCHROMIUM_BUILD',
+        '-DCLD_VERSION=2',
+        '-DDYNAMIC_ANNOTATIONS_ENABLED=1',
+        '-DENABLE_APP_LIST=1',
+        '-DENABLE_AUTOFILL_DIALOG=1',
+        '-DENABLE_BACKGROUND=1',
+        '-DENABLE_BASIC_PRINTING=1',
+        '-DENABLE_CAPTIVE_PORTAL_DETECTION=1',
+        '-DENABLE_CONFIGURATION_POLICY',
+        '-DENABLE_EXTENSIONS=1',
+        '-DENABLE_MEDIA_ROUTER=1',
+        '-DENABLE_NOTIFICATIONS',
+        '-DENABLE_PDF=1',
+        '-DENABLE_PEPPER_CDMS',
+        '-DENABLE_PLUGINS=1',
+        '-DENABLE_PLUGIN_INSTALLATION=1',
+        '-DENABLE_PRINTING=1',
+        '-DENABLE_PRINT_PREVIEW=1',
+        '-DENABLE_SERVICE_DISCOVERY=1',
+        '-DENABLE_SESSION_SERVICE=1',
+        '-DENABLE_SETTINGS_APP=1',
+        '-DENABLE_SPELLCHECK=1',
+        '-DENABLE_SUPERVISED_USERS=1',
+        '-DENABLE_TASK_MANAGER=1',
+        '-DENABLE_THEMES=1',
+        '-DENABLE_TOPCHROME_MD=1',
+        '-DENABLE_WEBRTC=1',
+        '-DEXPAT_RELATIVE_PATH',
+        '-DFEATURE_ENABLE_SSL',
+        '-DFIELDTRIAL_TESTING_ENABLED',
+        '-DFULL_SAFE_BROWSING',
+        '-DHASH_NAMESPACE=__gnu_cxx',
+        '-DHAVE_OPENSSL_SSL_H',
+        '-DHAVE_WEBRTC_VIDEO',
+        '-DLIBPEERCONNECTION_IMPLEMENTATION',
+        '-DLIBPEERCONNECTION_LIB',
+        '-DLOGGING=1',
+        '-DPOSIX',
+        '-DWEBRTC_POSIX',
+        '-DSAFE_BROWSING_CSD',
+        '-DSAFE_BROWSING_DB_LOCAL',
+        '-DSSL_USE_OPENSSL',
+        '-DUSE_BROWSER_SPELLCHECKER=1',
+        '-DUSE_LIBJPEG_TURBO=1',
+        '-DUSE_LIBPCI=1',
+        '-DUSE_OPENSSL=1',
+        '-DV8_DEPRECATION_WARNINGS',
+        '-DV8_USE_EXTERNAL_STARTUP_DATA',
+        '-DWEBRTC_EXTERNAL_JSON',
+        '-DWEBRTC_INCLUDE_INTERNAL_AUDIO_DEVICE',
+        '-DWTF_USE_DYNAMIC_ANNOTATIONS=1',
+        '-D_REENTRANT',
+        '-D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORE=0',
+        '-D__STDC_CONSTANT_MACROS',
+        '-D__STDC_FORMAT_MACROS'
       ],
 
       'ldflags': [
@@ -21,6 +87,7 @@
 
       'libraries': [
         '-lpthread',
+        # relative path from build/ directory
         '../../build/osx-x86_64-release/mediacore/mediacore/libmediacore.a',
         '../../build/osx-x86_64-release/carmel/carmel/libcarmel.a',
         '../../build/osx-x86_64-release/carmel/carmel/libbixbyproto.a',
@@ -35,15 +102,15 @@
         '../../build/osx-x86_64-release/eastwood-core/eastwood/libew-sink.a',
         '../../build/osx-x86_64-release/eastwood-core/eastwood/libew-ffmpeg.a',
         '../../build/osx-x86_64-release/eastwood-core/eastwood/libew-subscribe.a',
-        '../../build/osx-x86_64-release/ffmpeg/build/x86_64/libavformat/libavformat.a',
-        '../../build/osx-x86_64-release/ffmpeg/build/x86_64/libavcodec/libavcodec.a',
-        '../../build/osx-x86_64-release/ffmpeg/build/x86_64/libswscale/libswscale.a',
-        '../../build/osx-x86_64-release/ffmpeg/build/x86_64/libswresample/libswresample.a',
-        '../../build/osx-x86_64-release/ffmpeg/build/x86_64/libavfilter/libavfilter.a',
-        '../../build/osx-x86_64-release/ffmpeg/build/x86_64/libavutil/libavutil.a',
-        '../../build/osx-x86_64-release/x264/build/x86_64/libx264.a',
-        '../../build/osx-x86_64-release/rtmpdump/build/x86_64/lib/librtmp.a',
-        '../../build/osx-x86_64-release/freetype/libfreetype.a',
+        '../../build/osx-x86_64-release/eastwood-core/ffmpeg/build/x86_64/libavformat/libavformat.a',
+        '../../build/osx-x86_64-release/eastwood-core/ffmpeg/build/x86_64/libavcodec/libavcodec.a',
+        '../../build/osx-x86_64-release/eastwood-core/ffmpeg/build/x86_64/libswscale/libswscale.a',
+        '../../build/osx-x86_64-release/eastwood-core/ffmpeg/build/x86_64/libswresample/libswresample.a',
+        '../../build/osx-x86_64-release/eastwood-core/ffmpeg/build/x86_64/libavfilter/libavfilter.a',
+        '../../build/osx-x86_64-release/eastwood-core/ffmpeg/build/x86_64/libavutil/libavutil.a',
+        '../../build/osx-x86_64-release/eastwood-core/x264/build/x86_64/libx264.a',
+        '../../build/osx-x86_64-release/eastwood-core/rtmpdump/build/x86_64/lib/librtmp.a',
+        '../../build/osx-x86_64-release/eastwood-core/freetype/libfreetype.a',
         '../../build/osx-x86_64-release/boost/libat_boost_execution_monitor.a',
         '../../build/osx-x86_64-release/boost/libat_boost_random.a',
         '../../build/osx-x86_64-release/boost/libat_boost_system.a',
@@ -138,13 +205,14 @@
   
       "include_dirs": [
         "src",
-        "../../at-deps/mediacore",
-        "../../at-deps/libtecate",
-        "../../at-deps/carmel",
-        "../../at-deps/eastwood-core",
-        "../../at-deps/third_party/boost/src"
-        "../../at-deps/third_party/ffmpeg/src",
-        "../../at-deps/ffmpeg/build/x86_64"
+        # relative path from the project top directory
+        "../at-deps/mediacore",
+        "../at-deps/libtecate",
+        "../at-deps/carmel",
+        "../at-deps/eastwood-core",
+        "../at-deps/third_party/boost/src",
+        "../at-deps/third_party/ffmpeg/src",
+        "../at-deps/ffmpeg/build/x86_64"
       ],
 
       'defines':  [
@@ -157,17 +225,19 @@
             'xcode_settings': {
               'GCC_ENABLE_CPP_RTTI': 'YES',
               'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
+              'OTHER_CFLAGS': [
+                '-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk',
+                '-mmacosx-version-min=10.9',
+                '-framework VideoToolbox', '-framework VideoDecodeAcceleration', '-framework Security',
+                '-framework CoreServices', '-framework OpenGL', '-framework QTKit', '-framework Cocoa', '-framework AudioToolbox',
+                '-framework CoreAudio', '-framework IOKit', '-framework AVFoundation', '-framework CoreMedia', '-framework CoreVideo',
+                '-framework Foundation'
+              ],
               'OTHER_LDFLAGS': [
               ]
             },
             
             'cflags': [
-              '-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk',
-              '-mmacosx-version-min=10.9',
-              '-framework VideoToolbox', '-framework VideoDecodeAcceleration', '-framework Security',
-              '-framework CoreServices', '-framework OpenGL', '-framework QTKit', '-framework Cocoa', '-framework AudioToolbox',
-              '-framework CoreAudio', '-framework IOKit', '-framework AVFoundation', '-framework CoreMedia', '-framework CoreVideo',
-              '-framework Foundation'
             ],
 
             'ldflags': [
@@ -182,7 +252,10 @@
            ],
 
             'defines': [
-              'OSX'
+              'OSX',
+              'AT_OSX=1',
+              'OSX',
+              'WEBRTC_MAC'
             ]
 
           },

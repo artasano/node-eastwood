@@ -10,7 +10,7 @@
     {
       "taskName": "configure-build",
       "args": [
-        "configure", "build"
+        "configure", "build", "--verbose"
       ]
     },
     {

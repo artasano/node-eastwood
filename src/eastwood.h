@@ -4,8 +4,8 @@
 #include <node.h>
 #include <node_object_wrap.h>
 
-// #include "mediacore/defs.h"
-// #include "mediacore/base/eventloop.h"
+#include "mediacore/defs.h"
+#include "mediacore/async/eventloop.h"
 
 namespace ew {
 
