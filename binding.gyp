@@ -65,11 +65,11 @@
         '-DWEBRTC_POSIX',
         '-DSAFE_BROWSING_CSD',
         '-DSAFE_BROWSING_DB_LOCAL',
-        '-DSSL_USE_OPENSSL',
+        #'-DSSL_USE_OPENSSL',
         '-DUSE_BROWSER_SPELLCHECKER=1',
         '-DUSE_LIBJPEG_TURBO=1',
         '-DUSE_LIBPCI=1',
-        '-DUSE_OPENSSL=1',
+        #'-DUSE_OPENSSL=1',
         '-DV8_DEPRECATION_WARNINGS',
         '-DV8_USE_EXTERNAL_STARTUP_DATA',
         '-DWEBRTC_EXTERNAL_JSON',
@@ -78,7 +78,9 @@
         '-D_REENTRANT',
         '-D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORE=0',
         '-D__STDC_CONSTANT_MACROS',
-        '-D__STDC_FORMAT_MACROS'
+        '-D__STDC_FORMAT_MACROS',
+        #tiral
+        "-isystem../at-deps/third_party/boringssl/src/include"
       ],
 
       'ldflags': [
@@ -208,11 +210,13 @@
         # relative path from the project top directory
         "../at-deps/mediacore",
         "../at-deps/libtecate",
-        "../at-deps/carmel",
+        "../at-deps/carmel/include",
         "../at-deps/eastwood-core",
         "../at-deps/third_party/boost/src",
         "../at-deps/third_party/ffmpeg/src",
-        "../at-deps/ffmpeg/build/x86_64"
+        "../at-deps/ffmpeg/build/x86_64",
+        "../at-deps/third_party/jsoncpp/include",
+        # trying isystem "../at-deps/third_party/boringssl/src/include"
       ],
 
       'defines':  [

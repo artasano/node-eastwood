@@ -9,20 +9,19 @@ var EastWood = require('../libs/index').EastWood;
 
 const ew = new EastWood();
 
-const s1 = ew.createSubscriber(10);
-// also works
-// var Subscriber = require('../libs/index').Subscriber;
-// const s1 = new Subscriber(10);
-console.log('Returned '
-+ s1.add(3, function(sub) {
-    console.log('Callback ' + sub.getValue());
-  }));
+const s1 = ew.createSubscriber();
+var x = s1.configure()
+  .bixby('11.22.33.44', 55)
+  .streamNotifier('2.3.4.5', 66, 'tagABC', false, true)
+  .audioSink(EastWood.AudioSinkFile, 'some/place/audio.dat')
+  .videoSink(EastWood.VideoSinkFile, 'other/place/video.dat')
+  .subscriptionErrorRetry(10, 200, 3.0);
 
-const s2 = ew.createSubscriber(20);
-console.log('Returned ' + s2.add(3, function(sub) {
-    console.log('Callback ' + sub.getValue());
-    console.log('Throwing');
-    throw new Error('Test Exception');
-  }));
+console.log('Subscriber config:\n' + s1.dumpConfig());
+
+// don't want it to work
+// var Subscriber = require('../libs/index').Subscriber;
+// const s = new Subscriber();
+
 
 process.exit(0);
