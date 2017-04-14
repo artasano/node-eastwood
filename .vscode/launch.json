@@ -5,7 +5,7 @@
       "type": "node",
       "request": "launch",
       "name": "Test",
-      "preLaunchTask": "configure-build",
+      "preLaunchTask": "configure-debug-build",
       "program": "${workspaceRoot}/tests/test.js",
       "cwd": "${workspaceRoot}"
     },

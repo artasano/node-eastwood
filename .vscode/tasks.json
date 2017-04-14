@@ -8,6 +8,12 @@
   "suppressTaskName": true,
   "tasks": [
     {
+      "taskName": "configure-debug-build",
+      "args": [
+        "--debug", "configure", "build", "--verbose"
+      ]
+    },
+    {
       "taskName": "configure-build",
       "args": [
         "configure", "build", "--verbose"

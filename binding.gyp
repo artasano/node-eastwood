@@ -4,6 +4,7 @@
       "target_name": "eastwood_addon",
       "sources": [
         "src/eastwood_addon.cc",
+        "src/addon_util.cc",
         "src/eastwood.cc"
       ],
 

@@ -17,7 +17,7 @@ var x = s1.configure()
   .videoSink(EastWood.VideoSinkFile, 'other/place/video.dat')
   .subscriptionErrorRetry(10, 200, 3.0);
 
-console.log('Subscriber config:\n' + s1.dumpConfig());
+console.log(s1.configure().toObject());
 
 // don't want it to work
 // var Subscriber = require('../libs/index').Subscriber;

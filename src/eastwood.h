@@ -16,6 +16,31 @@
 
 namespace ew {
 
+class EastWood : public node::ObjectWrap {
+ public:
+  enum AudioSinkType { AudioSinkNone = 0, AudioSinkFile = 1, AudioSinkFFMpeg = 2 };
+  enum VideoSinkType { VideoSinkNone = 0, VideoSinkFile = 1, VideoSinkFFMpeg = 2 };
+
+  static std::string AudioSinkString(AudioSinkType sink);
+  static std::string VideoSinkString(VideoSinkType sink);
+
+  static void Init(v8::Local<v8::Object> exports);
+
+ private:
+  EastWood();
+  ~EastWood();
+
+  static at::Ptr<at::EventLoop> event_loop_;
+
+  /**
+   * @param init value
+   */
+  static void CreateSubscriber(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+  static void New(const v8::FunctionCallbackInfo<v8::Value>& args);
+  static v8::Persistent<v8::Function> constructor;
+};
+
 class Subscriber : public node::ObjectWrap {
  public:
   /// Chainable configuration builder
@@ -92,20 +117,18 @@ class Subscriber : public node::ObjectWrap {
      */
     static void PrintFrameInfo(const v8::FunctionCallbackInfo<v8::Value>& args);
 
-    enum AudioSinkType { AudioSinkNone = 0, AudioSinkFile = 1, AudioSinkFFMpeg = 2 };
     /**
      * Sets audio sink (optional. default is null-sink)
      * C++ Equivalence:
-     * SubscriberConfig& AudioSink(AudioSinkType sink, const string& param = "");
+     * SubscriberConfig& AudioSink(EastWood::AudioSinkType sink, const string& param = "");
      * @param param: filename for file sink, ffmpeg parameters for ffmpeg sink
      */
     static void AudioSink(const v8::FunctionCallbackInfo<v8::Value>& args);
 
-    enum VideoSinkType { VideoSinkNone = 0, VideoSinkFile = 1, VideoSinkFFMpeg = 2 };
     /**
      * Sets vodeo sink (optional. default is null-sink)
      * C++ Equivalence:
-     * SubscriberConfig& VideoSink(VideoSinkType sink, const string& param = "");
+     * SubscriberConfig& VideoSink(EastWood::VideoSinkType sink, const string& param = "");
      * @param param: filename for file sink, ffmpeg parameters for ffmpeg sink
      */
     static void VideoSink(const v8::FunctionCallbackInfo<v8::Value>& args);
@@ -123,6 +146,13 @@ class Subscriber : public node::ObjectWrap {
      */
     static void SubscriptionErrorRetry(const v8::FunctionCallbackInfo<v8::Value>& args);
 
+    /**
+     * Returns an JavaScript Object that contains a copy of current configuration.
+     */
+    static void ToObject(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+    v8::Local<v8::Object> ToObjectImpl(v8::Isolate* isolate) const;
+
     at::Endpoint bixby_endpoint_;
     at::Endpoint allocator_endpoint_;
     std::string alloc_location_;  // used with bixby_allocator
@@ -136,28 +166,26 @@ class Subscriber : public node::ObjectWrap {
     bool cert_check_ = true;
     std::string auth_secret_;
     bool print_frame_info_ = false;
-    AudioSinkType audio_sink_ = AudioSinkNone;
+    EastWood::AudioSinkType audio_sink_ = EastWood::AudioSinkType::AudioSinkNone;
     std::string audio_sink_param_;
-    VideoSinkType video_sink_ = VideoSinkNone;
+    EastWood::VideoSinkType video_sink_ = EastWood::VideoSinkType::VideoSinkNone;
     std::string video_sink_param_;
     uint32_t err_max_retries_ = 0;
     uint32_t err_retry_init_delay_ms_ = 0;
     float err_retry_delay_progression_ = 1.0;
 
-    void VerifyConfig(v8::Isolate* isolate) const;
-    void VerifyBixbyConfig(v8::Isolate* isolate) const;
-    void VerifyAllocatorConfig(v8::Isolate* isolate) const;
-    void VerifyNotifierConfig(v8::Isolate* isolate) const;
-    void VerifyDurationConfig(v8::Isolate* isolate) const;
-    void VerifyUserIdConfig(v8::Isolate* isolate) const;
-    void VerifyStreamUrlConfig(v8::Isolate* isolate) const;
-    void VerifyTagConfig(v8::Isolate* isolate) const;
-    void VerifyAudioSinkConfig(v8::Isolate* isolate) const;
-    void VerifyVideoSinkConfig(v8::Isolate* isolate) const;
-    void VerifyErrorRetryConfig(v8::Isolate* isolate) const;
-    void VerifyConfigCombinations(v8::Isolate* isolate) const;
-    static std::string AudioSinkString(AudioSinkType sink);
-    static std::string VideoSinkString(VideoSinkType sink);
+    void VerifyConfig(const v8::FunctionCallbackInfo<v8::Value>& args) const;
+    void VerifyBixbyConfig(const v8::FunctionCallbackInfo<v8::Value>& args) const;
+    void VerifyAllocatorConfig(const v8::FunctionCallbackInfo<v8::Value>& args) const;
+    void VerifyNotifierConfig(const v8::FunctionCallbackInfo<v8::Value>& args) const;
+    void VerifyDurationConfig(const v8::FunctionCallbackInfo<v8::Value>& args) const;
+    void VerifyUserIdConfig(const v8::FunctionCallbackInfo<v8::Value>& args) const;
+    void VerifyStreamUrlConfig(const v8::FunctionCallbackInfo<v8::Value>& args) const;
+    void VerifyTagConfig(const v8::FunctionCallbackInfo<v8::Value>& args) const;
+    void VerifyAudioSinkConfig(const v8::FunctionCallbackInfo<v8::Value>& args) const;
+    void VerifyVideoSinkConfig(const v8::FunctionCallbackInfo<v8::Value>& args) const;
+    void VerifyErrorRetryConfig(const v8::FunctionCallbackInfo<v8::Value>& args) const;
+    void VerifyConfigCombinations(const v8::FunctionCallbackInfo<v8::Value>& args) const;
 
     static v8::Local<v8::Object> NewInstance(const v8::FunctionCallbackInfo<v8::Value>& args);
     /// @internal Used by V8 framework
@@ -168,7 +196,6 @@ class Subscriber : public node::ObjectWrap {
     static void Init(v8::Local<v8::Object> exports);
 
     friend class Subscriber;
-    friend std::ostream& operator<< (std::ostream& ost, const SubscriberConfig& config);
   };
 
   /**
@@ -204,12 +231,6 @@ class Subscriber : public node::ObjectWrap {
    */
   static void Stop(const v8::FunctionCallbackInfo<v8::Value>& args);
 
-  /**
-   * Dumps config
-   * C++ Equivalent string DumpConfig() const;
-   */
-  static void DumpConfig(const v8::FunctionCallbackInfo<v8::Value>& args);
-  
   /// @internal Used by V8 framework
   static void Init(v8::Local<v8::Object> exports);
 
@@ -229,28 +250,10 @@ class Subscriber : public node::ObjectWrap {
   friend class EastWood;
 
   mutable at::Logger log_;
-  static at::Ptr<at::EventLoop> event_loop_;
-  v8::Local<v8::Object> config_;
+  v8::Persistent<v8::Object> config_;
   std::vector<v8::Local<v8::Function>> started_event_listeners_;
   std::vector<v8::Local<v8::Function>> ended_event_listeners_;
   std::vector<v8::Local<v8::Function>> error_event_listeners_;
-};
-
-class EastWood : public node::ObjectWrap {
- public:
-  static void Init(v8::Local<v8::Object> exports);
-
- private:
-  EastWood();
-  ~EastWood();
-
-  /**
-   * @param init value
-   */
-  static void CreateSubscriber(const v8::FunctionCallbackInfo<v8::Value>& args);
-
-  static void New(const v8::FunctionCallbackInfo<v8::Value>& args);
-  static v8::Persistent<v8::Function> constructor;
 };
 
 }  // namespace ew
