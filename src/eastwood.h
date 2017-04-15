@@ -14,6 +14,7 @@
 #include "mediacore/async/eventloop.h"
 #include "mediacore/base/logging.h"
 #include "mediacore/base/endpoint.h"
+#include "addon_util.h"
 
 
 namespace ew {
@@ -49,8 +50,7 @@ class EastWood : public node::ObjectWrap {
   static void New(const v8::FunctionCallbackInfo<v8::Value>& args);
   static v8::Persistent<v8::Function> constructor;
 
- public:
-  using ObjectWrap::Wrap;
+  AT_ADDON_CLASS;
 };
 
 class Subscriber : public node::ObjectWrap {
@@ -216,8 +216,7 @@ class Subscriber : public node::ObjectWrap {
     static void Init(v8::Local<v8::Object> exports);
 
     friend class Subscriber;
-   public:
-    using ObjectWrap::Wrap;
+    AT_ADDON_CLASS;
   };
 
   /**
@@ -276,8 +275,8 @@ class Subscriber : public node::ObjectWrap {
   std::vector<v8::Local<v8::Function>> started_event_listeners_;
   std::vector<v8::Local<v8::Function>> ended_event_listeners_;
   std::vector<v8::Local<v8::Function>> error_event_listeners_;
- public:
-  using ObjectWrap::Wrap;
+
+  AT_ADDON_CLASS;
 };
 
 }  // namespace ew

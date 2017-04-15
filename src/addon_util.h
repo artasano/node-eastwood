@@ -56,7 +56,7 @@ struct Util {
   static EnumType ToEnumType(v8::Isolate* isolate, const v8::Local<v8::Value>& val);
 
   /// Creates enum spec for InitClass. Usefill if enum name is unqualified
-  #define AT_ADDON_CLASS_ENUM(ENUM) at::node_addon::Util::Enum(#ENUM, ENUM)
+#define AT_ADDON_CLASS_ENUM(ENUM) at::node_addon::Util::Enum(#ENUM, ENUM)
 
   /// Creates enum spec for InitClass. Use this version (instead of macro) if enum name has qualifier.
   static std::pair<std::string, EnumType> Enum(const std::string& name, EnumType val);
@@ -75,9 +75,13 @@ struct Util {
 
   /**
    * Creates new Cpp instance.
+   * The class T definition needs to include AT_ADDON_CLASS. (It can be in private section)
    */
   template <class T>
   static bool NewCppInstance(const v8::FunctionCallbackInfo<v8::Value>& args, T* obj);
+
+  /// Helper to make NewCppInstance work (Need this because Wrap() is ObjectWrap's protected member, and NewCppInstance needs to use it.)
+#define AT_ADDON_CLASS template <class T> friend bool at::node_addon::Util::NewCppInstance(const v8::FunctionCallbackInfo<v8::Value>&, T*)
 
   /**
    * Checks function arguments given by V8.
