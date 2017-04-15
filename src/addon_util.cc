@@ -1,4 +1,4 @@
-// Copyright Airtime Media, Inc. 2017
+/// @copyright © 2017 Airtime Media.  All rights reserved.
 
 #include <stdexcept>
 #include <vector>
@@ -77,11 +77,19 @@ bool Util::ToBool(Isolate* isolate, Local<Value> val) {
   return val->IsTrue();
 }
 
+bool Util::IsV8EnumType(const v8::Local<v8::Value>& val) {
+  return val->IsInt32();
+}
+
+Util::EnumType Util::ToEnumType(Isolate* isolate, const Local<Value>& val) {
+  return ToInt32(isolate, val);
+}
+
 pair<string, FunctionCallback> Util::Prototype(const string& name, FunctionCallback func) {
   return make_pair(name, func);
 }
 
-pair<string, int> Util::Enum(const string& name, int val) {
+pair<string, Util::EnumType> Util::Enum(const string& name, EnumType val) {
   return make_pair(name, val);
 }
 
@@ -97,19 +105,6 @@ Local<Object> Util::NewV8Instance(Persistent<Function>& constructor, const Funct
   }
   auto ctor = Local<Function>::New(isolate, constructor);
   return ctor->NewInstance(isolate->GetCurrentContext(), isolated_argc, isolated_args.data()).ToLocalChecked();
-}
-
-void Util::NewCppInstance(
-        const FunctionCallbackInfo<Value>& args, const string& class_name, function<Local<Object>()> create_and_wrap_func) {
-  auto isolate = args.GetIsolate();
-
-  if (args.IsConstructCall()) {
-    // construct
-    args.GetReturnValue().Set(create_and_wrap_func());
-  } else {
-    ThrowException(args, Exception::SyntaxError, "Use 'new' to instantiate");
-    return;
-  }
 }
 
 }  // namespace node_addon

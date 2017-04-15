@@ -1,8 +1,10 @@
-// Copyright Airtime Media, Inc. 2017
+/// @copyright © 2017 Airtime Media.  All rights reserved.
 
 #ifndef AT_ADDON_UTIL_H_
 # error Must be implicitly included in addon_util.h
 #endif
+
+#include <typeinfo>
 
 namespace at {
 namespace node_addon {
@@ -55,7 +57,7 @@ void SetUpClassProp(
 template <class... Rest>
 void SetUpClassProp(
           Local<Object> exports, Local<FunctionTemplate> tpl, 
-          const pair<string, int>& enm, Rest&&... rest) {
+          const pair<string, Util::EnumType>& enm, Rest&&... rest) {
   auto isolate = exports->GetIsolate();
   auto context = isolate->GetCurrentContext();
   tpl->GetFunction()->DefineOwnProperty(context,
@@ -94,43 +96,72 @@ void Util::InitClass(
 namespace {
 
 template <size_t N>
-void CheckArg(Isolate* isolate, const string& context, const FunctionCallbackInfo<Value>& args) {}
+bool CheckArg(Isolate* isolate, const string& context, const FunctionCallbackInfo<Value>& args) {
+  return true;
+}
 
 template <size_t N, class CheckFunc, class... RestOfCheckFunc>
-void CheckArg(
+bool CheckArg(
         Isolate* isolate, const string& context, const FunctionCallbackInfo<Value>& args,
         CheckFunc&& check, RestOfCheckFunc&&... rest) {
 
   assert(isolate);
   
-  if (!check(args[N])) {
+  auto err_msg = ""s;
+  if (!check(args[N], err_msg)) {
     Util::ThrowException(args, Exception::TypeError,
-        context + ": Wrong argument at " + to_string(N) + " given " + Util::Inspect(isolate, args[N]));
-    return;
+        context + ": "
+        + (err_msg.empty()
+           ? "Wrong argument at " + to_string(N) + " given " + Util::Inspect(isolate, args[N])
+           : err_msg));
+    return false;
   }
-  CheckArg<N+1>(isolate, context, args, forward<RestOfCheckFunc>(rest)...);
+  if (args.Length() <= N + 1) return true;
+  return CheckArg<N+1>(isolate, context, args, forward<RestOfCheckFunc>(rest)...);
 }
 
 }  // anonymous namespace
 
-template <class... CheckFunc> // CheckFunc: bool(const Local<Value>)
-void Util::CheckArgs(
-  Isolate* isolate, const string& context, const FunctionCallbackInfo<Value>& args, size_t num_args,
+template <class... CheckFunc> // CheckFunc: pair<bool, string>(const Local<Value>)
+bool Util::CheckArgs(
+  Isolate* isolate, const string& context, const FunctionCallbackInfo<Value>& args,
+  size_t min_num_args, size_t max_num_args,
   CheckFunc&&... checks) {
 
   assert(isolate);
 
   // Check the number of arguments passed.
-  if (args.Length() < num_args) {
-    // Throw an Error that is passed back to JavaScript
+  if (args.Length() < min_num_args)  {
     ThrowException(args, Exception::TypeError, 
-        context + ": Needs " + to_string(num_args) + " args but given " + to_string(num_args));
-    return;
+        context + ": Needs " + to_string(min_num_args) + " args but given " + to_string(args.Length()));
+    return false;
   }
+  if (max_num_args < args.Length()) {
+    ThrowException(args, Exception::TypeError, 
+        context + ": Takes " + to_string(max_num_args) + " args but given " + to_string(args.Length()));
+    return false;
+  }
+  if (0 == max_num_args) return true;
 
   // Check the argument types
-  CheckArg<0>(isolate, context, args, forward<CheckFunc>(checks)...);
+  return CheckArg<0>(isolate, context, args, forward<CheckFunc>(checks)...);
 }
+
+template <class T>
+bool Util::NewCppInstance(const FunctionCallbackInfo<Value>& args, T* obj) {
+  auto isolate = args.GetIsolate();
+
+  if (args.IsConstructCall()) {
+    // construct
+    obj->Wrap(args.This());
+    args.GetReturnValue().Set(args.This());
+    return true;
+  } else {
+    ThrowException(args, Exception::SyntaxError, "Use 'new' to instantiate "s + typeid(T).name());
+    return false;
+  }
+}
+
 
 }  // namespace node_addon
 }  // namespace at

@@ -4,9 +4,13 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Test",
+      "name": "Launch Tests",
       "preLaunchTask": "configure-debug-build",
-      "program": "${workspaceRoot}/tests/test.js",
+      "program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
+      "args": [
+        "--no-timeouts", "--colors",
+        "tests/test-*.js"
+      ],
       "cwd": "${workspaceRoot}"
     },
     {

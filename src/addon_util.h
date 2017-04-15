@@ -1,4 +1,4 @@
-/// Copyright Airtime Media, Inc. 2017
+/// @copyright © 2017 Airtime Media.  All rights reserved.
 
 #ifndef AT_ADDON_UTIL_H_
 #define AT_ADDON_UTIL_H_
@@ -45,11 +45,21 @@ struct Util {
   /// Creates prototype spec for InitClass
   static std::pair<std::string, v8::FunctionCallback> Prototype(const std::string& name, v8::FunctionCallback func);
 
+  /// Enums are converted between C++ and V8 in this type
+  using EnumType = int32_t;
+  using V8EnumType = v8::Int32;
+
+  /// Checks the type
+  static bool IsV8EnumType(const v8::Local<v8::Value>& val);
+
+  /// Gets the value @throw if @a val type is not V8EnumType
+  static EnumType ToEnumType(v8::Isolate* isolate, const v8::Local<v8::Value>& val);
+
   /// Creates enum spec for InitClass. Usefill if enum name is unqualified
   #define AT_ADDON_CLASS_ENUM(ENUM) at::node_addon::Util::Enum(#ENUM, ENUM)
 
   /// Creates enum spec for InitClass. Use this version (instead of macro) if enum name has qualifier.
-  static std::pair<std::string, int> Enum(const std::string& name, int val);
+  static std::pair<std::string, EnumType> Enum(const std::string& name, EnumType val);
 
   /// Initializes a class
   template <class... Prop>  // Prototype(..) or Enum(..)
@@ -63,24 +73,26 @@ struct Util {
   static v8::Local<v8::Object> NewV8Instance(
             v8::Persistent<v8::Function>& constructor, const v8::FunctionCallbackInfo<v8::Value>& args);
 
-  /// Creates new Cpp instance. Using macro because Wrap is a protected method in ObjectWrap base class
-  #define AT_ADDON_NEW_CPP_INSTANCE(V8_ARGS, CLASS, CTOR_ARGS) \
-    at::node_addon::Util::NewCppInstance(V8_ARGS, #CLASS, [&V8_ARGS]() { \
-      auto obj = new CLASS(CTOR_ARGS); \
-      obj->Wrap(V8_ARGS.This()); \
-      return V8_ARGS.This(); \
-    })
+  /**
+   * Creates new Cpp instance.
+   */
+  template <class T>
+  static bool NewCppInstance(const v8::FunctionCallbackInfo<v8::Value>& args, T* obj);
 
-  /// @internal used by AT_ADDON_NEW_CPP_INSTANCE
-  static void NewCppInstance(
-                const v8::FunctionCallbackInfo<v8::Value>& args, const std::string& class_name,
-                std::function<v8::Local<v8::Object>()> create_and_wrap_func);
-
-  /// Checks function arguments given by V8
-  template <class... CheckFunc> // CheckFunc: bool(const Local<Value>)
-  static void CheckArgs(
+  /**
+   * Checks function arguments given by V8.
+   * @param checks check function bool(const Local<Value> arg_val, string& err_msg)
+   *        that returns false if check fails.
+   *        arg_val [in]: Nth argument
+   *        err_msg [out]: error message (used only when returned false. default is used if not set)
+   *        called sequentially beginning with args[0]
+   * @return false if check failed. JS exception has been thrown in that case.
+   */
+  template <class... CheckFunc>
+  static bool CheckArgs(
           v8::Isolate* isolate, const std::string& context, 
-          const v8::FunctionCallbackInfo<v8::Value>& args, size_t num_args,
+          const v8::FunctionCallbackInfo<v8::Value>& args,
+          size_t min_num_args, size_t max_num_args,
           CheckFunc&&... checks);
 };
 
