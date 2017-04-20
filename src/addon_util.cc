@@ -33,9 +33,9 @@ string Util::ToString(const Local<Value> v8str) {
   return "";
 }
 
-string Util::Inspect(Isolate* isolate, Local<Value> value) {
+string Util::Inspect(Local<Value> value) {
   auto detail = "unknown"s;
-  auto maybeString = value->ToDetailString(isolate->GetCurrentContext());
+  auto maybeString = value->ToDetailString(Isolate::GetCurrent()->GetCurrentContext());
   Local<String> d;
   if (maybeString.ToLocal(&d)) {
     detail = ToString(d);
@@ -43,50 +43,48 @@ string Util::Inspect(Isolate* isolate, Local<Value> value) {
   return detail;
 }
 
-void Util::ThrowException(Isolate* isolate, Local<Value>(* ex)(Local<String>), const string& msg) {
-  assert(isolate);
+void Util::ThrowException(Local<Value>(* ex)(Local<String>), const string& msg) {
+  auto isolate = Isolate::GetCurrent();
   isolate->ThrowException(ex(String::NewFromUtf8(isolate, msg.c_str())));
 }
 
 void Util::ThrowException(
             const FunctionCallbackInfo<Value>& args, Local<Value>(* ex)(Local<String>), const string& msg) {
-  auto isolate = args.GetIsolate();
-  auto m = Inspect(isolate, args.Holder()) + " " + msg;
-  ThrowException(isolate, ex, m);
+  auto m = Inspect(args.Holder()) + " " + msg;
+  ThrowException(ex, m);
 }
 
-int32_t Util::ToInt32(Isolate* isolate, Local<Value> val) {
-  assert(isolate);
+int32_t Util::ToInt32(Local<Value> val) {
+  auto isolate = Isolate::GetCurrent();
   auto maybeValue = val->ToInt32(isolate->GetCurrentContext());
   Local<Int32> value;
   if (maybeValue.ToLocal(&value)) {
     return value->Value();
   }
-  throw logic_error("Value is not int32 but " + Inspect(isolate, val));
+  throw logic_error("Value is not int32 but " + Inspect(val));
 }
 
-uint32_t Util::ToUint32(Isolate* isolate, Local<Value> val) {
-  assert(isolate);
+uint32_t Util::ToUint32(Local<Value> val) {
+  auto isolate = Isolate::GetCurrent();
   auto maybeValue = val->ToUint32(isolate->GetCurrentContext());
   Local<Uint32> value;
   if (maybeValue.ToLocal(&value)) {
     return value->Value();
   }
-  throw logic_error("Value is not uint32 but " + Inspect(isolate, val));
+  throw logic_error("Value is not uint32 but " + Inspect(val));
 }
 
-double Util::ToDouble(Isolate* isolate, Local<Value> val) {
-  assert(isolate);
+double Util::ToDouble(Local<Value> val) {
+  auto isolate = Isolate::GetCurrent();
   auto maybeValue = val->ToNumber(isolate->GetCurrentContext());
   Local<Number> value;
   if (maybeValue.ToLocal(&value)) {
     return value->Value();
   }
-  throw logic_error("Value is not double but " + Inspect(isolate, val));
+  throw logic_error("Value is not double but " + Inspect(val));
 }
 
-bool Util::ToBool(Isolate* isolate, Local<Value> val) {
-  assert(isolate);
+bool Util::ToBool(Local<Value> val) {
   return val->IsTrue();
 }
 
@@ -94,8 +92,8 @@ bool Util::IsV8EnumType(const v8::Local<v8::Value>& val) {
   return val->IsInt32();
 }
 
-Util::EnumType Util::ToEnumType(Isolate* isolate, const Local<Value>& val) {
-  return ToInt32(isolate, val);
+Util::EnumType Util::ToEnumType(const Local<Value>& val) {
+  return ToInt32(val);
 }
 
 pair<string, FunctionCallback> Util::Prototype(const string& name, FunctionCallback func) {
@@ -106,60 +104,60 @@ pair<string, Util::EnumType> Util::Enum(const string& name, EnumType val) {
   return make_pair(name, val);
 }
 
-Local<Boolean> Util::ToLocalBoolean(Isolate* isolate, bool value) {
-  return Boolean::New(isolate, value);
+Local<Boolean> Util::ToLocalBoolean(bool value) {
+  return Boolean::New(Isolate::GetCurrent(), value);
 }
 
-Local<Value> Util::ToLocalValue(Isolate* isolate, bool value) {
-  return ToLocalBoolean(isolate, value);
+Local<Value> Util::ToLocalValue(bool value) {
+  return ToLocalBoolean(value);
 }
 
-Local<Integer> Util::ToLocalInteger(Isolate* isolate, int32_t value) {
-  return Integer::New(isolate, value);
+Local<Integer> Util::ToLocalInteger(int32_t value) {
+  return Integer::New(Isolate::GetCurrent(), value);
 }
 
-Local<Integer> Util::ToLocalInteger(Isolate* isolate, int64_t value) {
-  return ToLocalInteger(isolate, static_cast<int32_t>(value));
+Local<Integer> Util::ToLocalInteger(int64_t value) {
+  return ToLocalInteger(static_cast<int32_t>(value));
 }
 
-Local<Value> Util::ToLocalValue(Isolate* isolate, int32_t value) {
-  return ToLocalInteger(isolate, value);
+Local<Value> Util::ToLocalValue(int32_t value) {
+  return ToLocalInteger(value);
 }
 
-Local<Value> Util::ToLocalValue(Isolate* isolate, int64_t value) {
-  return ToLocalInteger(isolate, value);
+Local<Value> Util::ToLocalValue(int64_t value) {
+  return ToLocalInteger(value);
 }
 
-Local<Integer> Util::ToLocalInteger(Isolate* isolate, uint32_t value) {
-  return Integer::NewFromUnsigned(isolate, value);
+Local<Integer> Util::ToLocalInteger(uint32_t value) {
+  return Integer::NewFromUnsigned(Isolate::GetCurrent(), value);
 }
 
-Local<Integer> Util::ToLocalInteger(Isolate* isolate, uint64_t value) {
-  return ToLocalInteger(isolate, static_cast<uint32_t>(value));
+Local<Integer> Util::ToLocalInteger(uint64_t value) {
+  return ToLocalInteger(static_cast<uint32_t>(value));
 }
 
-Local<Value> Util::ToLocalValue(Isolate* isolate, uint32_t value) {
-  return ToLocalInteger(isolate, value);
+Local<Value> Util::ToLocalValue(uint32_t value) {
+  return ToLocalInteger(value);
 }
 
-Local<Value> Util::ToLocalValue(Isolate* isolate, uint64_t value) {
-  return Uint32::NewFromUnsigned(isolate, static_cast<uint32_t>(value));
+Local<Value> Util::ToLocalValue(uint64_t value) {
+  return ToLocalInteger(static_cast<uint32_t>(value));
 }
 
-Local<Number> Util::ToLocalNumber(Isolate* isolate, double value) {
-  return Number::New(isolate, value);
+Local<Number> Util::ToLocalNumber(double value) {
+  return Number::New(Isolate::GetCurrent(), value);
 }
 
-Local<Value> Util::ToLocalValue(Isolate* isolate, double value) {
-  return ToLocalNumber(isolate, value);
+Local<Value> Util::ToLocalValue(double value) {
+  return ToLocalNumber(value);
 }
 
-Local<String> Util::ToLocalString(Isolate* isolate, const std::string& value) {
-  return String::NewFromUtf8(isolate, value.c_str());
+Local<String> Util::ToLocalString(const std::string& value) {
+  return String::NewFromUtf8(Isolate::GetCurrent(), value.c_str());
 }
 
-Local<Value> Util::ToLocalValue(Isolate* isolate, const std::string& value) {
-  return ToLocalString(isolate, value);
+Local<Value> Util::ToLocalValue(const std::string& value) {
+  return ToLocalString(value);
 }
 
 Local<Object> Util::NewV8Instance(Persistent<Function>& constructor, const FunctionCallbackInfo<Value>& args) {
@@ -184,14 +182,6 @@ Notifier::Notifier() {
     throw std::runtime_error("Notifier uv_async_init failed with " + to_string(ret));
   }
   async_.data = this;
-}
-
-void Notifier::Notify(Local<Function> listener, const vector<Local<Value>>& args) {
-    Notify(PersistentFunctionCopyable(Isolate::GetCurrent(), listener), args);
-}
-
-void Notifier::Notify(Persistent<Function> listener, const vector<Local<Value>>& args) {
-  Notify(listener.Get(Isolate::GetCurrent()), args);
 }
 
 void Notifier::Notify(PersistentFunctionCopyable listener, const vector<Local<Value>>& args) {

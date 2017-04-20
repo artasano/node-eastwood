@@ -9,10 +9,10 @@
 namespace at {
 namespace node_addon {
 
-using v8::Context;
-using v8::Function;
 using v8::FunctionCallbackInfo;
 using v8::FunctionCallback;
+using v8::Context;
+using v8::Function;
 using v8::FunctionTemplate;
 using v8::Isolate;
 using v8::Local;
@@ -96,39 +96,37 @@ void Util::InitClass(
 namespace {
 
 template <size_t N>
-bool CheckArg(Isolate* isolate, const string& context, const FunctionCallbackInfo<Value>& args) {
+bool CheckArg(const string& context, const FunctionCallbackInfo<Value>& args) {
   return true;
 }
 
 template <size_t N, class CheckFunc, class... RestOfCheckFunc>
 bool CheckArg(
-        Isolate* isolate, const string& context, const FunctionCallbackInfo<Value>& args,
+        const string& context, const FunctionCallbackInfo<Value>& args,
         CheckFunc&& check, RestOfCheckFunc&&... rest) {
-
-  assert(isolate);
+  auto isolate = Isolate::GetCurrent();
 
   auto err_msg = ""s;
   if (!check(args[N], err_msg)) {
     Util::ThrowException(args, Exception::TypeError,
         context + ": Wrong argument at " + to_string(N) + ". "
         + (err_msg.empty()
-           ? "given " + Util::Inspect(isolate, args[N])
+           ? "given " + Util::Inspect(args[N])
            : err_msg));
     return false;
   }
   if (args.Length() <= N + 1) return true;
-  return CheckArg<N+1>(isolate, context, args, forward<RestOfCheckFunc>(rest)...);
+  return CheckArg<N+1>(context, args, forward<RestOfCheckFunc>(rest)...);
 }
 
 }  // anonymous namespace
 
 template <class... CheckFunc> // CheckFunc: pair<bool, string>(const Local<Value>)
-bool Util::CheckArgs(
-  Isolate* isolate, const string& context, const FunctionCallbackInfo<Value>& args,
+bool Util::CheckArgs(const string& context, const FunctionCallbackInfo<Value>& args,
   size_t min_num_args, size_t max_num_args,
   CheckFunc&&... checks) {
 
-  assert(isolate);
+  auto isolate = Isolate::GetCurrent();
 
   // Check the number of arguments passed.
   if (args.Length() < min_num_args)  {
@@ -144,7 +142,7 @@ bool Util::CheckArgs(
   if (0 == max_num_args) return true;
 
   // Check the argument types
-  return CheckArg<0>(isolate, context, args, forward<CheckFunc>(checks)...);
+  return CheckArg<0>(context, args, forward<CheckFunc>(checks)...);
 }
 
 template <class T>

@@ -5,9 +5,6 @@
 #include <iostream>
 #include <typeinfo>
 
-// TODO(Art): trial
-#include <thread>
-
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 
@@ -70,7 +67,7 @@ Subscriber::~Subscriber() {
 
 void Subscriber::Configuration(const FunctionCallbackInfo<Value>& args) {
   auto isolate = args.GetIsolate();
-  if (!Util::CheckArgs(isolate, "configuration", args, 0, 0)) return;
+  if (!Util::CheckArgs("configuration", args, 0, 0)) return;
   Subscriber* self = Unwrap<Subscriber>(args.Holder());
   assert(self);
   args.GetReturnValue().Set(self->config_.Get(isolate));
@@ -78,11 +75,9 @@ void Subscriber::Configuration(const FunctionCallbackInfo<Value>& args) {
 
 
 void Subscriber::SubscriberConfig::Bixby(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
-
   auto host = ""s;
   auto port = 0u;
-  if (!Util::CheckArgs(isolate, "bixby", args, 2, 2,
+  if (!Util::CheckArgs("bixby", args, 2, 2,
     [&host](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
       host = Util::ToString(arg0);
@@ -92,9 +87,9 @@ void Subscriber::SubscriberConfig::Bixby(const FunctionCallbackInfo<Value>& args
       }
       return true;
     },
-    [isolate, &port](const Local<Value> arg1, string& err_msg) {
+    [&port](const Local<Value> arg1, string& err_msg) {
       if (!arg1->IsUint32()) return false;
-      port = Util::ToUint32(isolate, arg1);
+      port = Util::ToUint32(arg1);
       if (0 == port) {
         err_msg = "port number cannot be zero";
         return false;
@@ -109,12 +104,10 @@ void Subscriber::SubscriberConfig::Bixby(const FunctionCallbackInfo<Value>& args
 }
 
 void Subscriber::SubscriberConfig::BixbyAllocator(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
-
   auto host = ""s;
   auto port = 0u;
   auto loc = ""s;
-  if (!Util::CheckArgs(isolate, "bixbyAllocator", args, 3, 3,
+  if (!Util::CheckArgs("bixbyAllocator", args, 3, 3,
     [&host](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
       host = Util::ToString(arg0);
@@ -124,9 +117,9 @@ void Subscriber::SubscriberConfig::BixbyAllocator(const FunctionCallbackInfo<Val
       }
       return true;
     },
-    [isolate, &port](const Local<Value> arg1, string& err_msg) {
+    [&port](const Local<Value> arg1, string& err_msg) {
       if (!arg1->IsUint32()) return false;
-      port = Util::ToUint32(isolate, arg1);
+      port = Util::ToUint32( arg1);
       if (0 == port) {
         err_msg = "port number cannot be zero";
         return false;
@@ -151,12 +144,10 @@ void Subscriber::SubscriberConfig::BixbyAllocator(const FunctionCallbackInfo<Val
 }
 
 void Subscriber::SubscriberConfig::StreamNotifier(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
-
   auto host = ""s;
   auto port = 0u;
   auto tag = ""s;
-  if (!Util::CheckArgs(isolate, "streamNotifier", args, 5, 5,
+  if (!Util::CheckArgs("streamNotifier", args, 5, 5,
     [&host](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
       host = Util::ToString(arg0);
@@ -166,9 +157,9 @@ void Subscriber::SubscriberConfig::StreamNotifier(const FunctionCallbackInfo<Val
       }
       return true;
     },
-    [isolate, &port](const Local<Value> arg1, string& err_msg) {
+    [&port](const Local<Value> arg1, string& err_msg) {
       if (!arg1->IsUint32()) return false;
-      port = Util::ToUint32(isolate, arg1);
+      port = Util::ToUint32(arg1);
       if (0 == port) {
         err_msg = "port number cannot be zero";
         return false;
@@ -191,15 +182,14 @@ void Subscriber::SubscriberConfig::StreamNotifier(const FunctionCallbackInfo<Val
   assert(self);
   self->config_.notifier_endpoint = at::Endpoint(host, port);
   self->config_.tag = tag;
-  self->config_.use_tls_for_notifier = Util::ToBool(isolate, args[3]);
-  self->config_.no_notifier_cert_check = !Util::ToBool(isolate, args[4]);
+  self->config_.use_tls_for_notifier = Util::ToBool(args[3]);
+  self->config_.no_notifier_cert_check = !Util::ToBool(args[4]);
   args.GetReturnValue().Set(args.Holder());
 }
 
 void Subscriber::SubscriberConfig::Duration(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
   at::Duration dur = 0s;
-  if (!Util::CheckArgs(isolate, "duration", args, 1, 1,
+  if (!Util::CheckArgs("duration", args, 1, 1,
     [&dur](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
       try {
@@ -221,9 +211,8 @@ void Subscriber::SubscriberConfig::Duration(const FunctionCallbackInfo<Value>& a
 }
 
 void Subscriber::SubscriberConfig::UserId(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
   auto uid = ""s;
-  if (!Util::CheckArgs(isolate, "userId", args, 1, 1,
+  if (!Util::CheckArgs("userId", args, 1, 1,
     [&uid](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
       uid = Util::ToString(arg0);
@@ -241,10 +230,8 @@ void Subscriber::SubscriberConfig::UserId(const FunctionCallbackInfo<Value>& arg
 }
 
 void Subscriber::SubscriberConfig::StreamUrl(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
-
   auto url = ""s;
-  if (!Util::CheckArgs(isolate, "streamUrl", args, 1, 1,
+  if (!Util::CheckArgs("streamUrl", args, 1, 1,
     [&url](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
       url = Util::ToString(arg0);
@@ -262,21 +249,18 @@ void Subscriber::SubscriberConfig::StreamUrl(const FunctionCallbackInfo<Value>& 
 }
 
 void Subscriber::SubscriberConfig::CertCheck(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
-
-  if (!Util::CheckArgs(isolate, "certCheck", args, 1, 1,
+  if (!Util::CheckArgs("certCheck", args, 1, 1,
     [](const Local<Value> arg0, string& err_msg) { return arg0->IsBoolean(); })) return;
 
   SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
   assert(self);
-  self->config_.no_cert_check = !Util::ToBool(isolate, args[0]);
+  self->config_.no_cert_check = !Util::ToBool(args[0]);
   args.GetReturnValue().Set(args.Holder());
 }
 
 void Subscriber::SubscriberConfig::AuthSecret(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
 
-  if (!Util::CheckArgs(isolate, "authSecret", args, 1, 1,
+  if (!Util::CheckArgs("authSecret", args, 1, 1,
     [](const Local<Value> arg0, string& err_msg) { return arg0->IsString(); })) return;
 
   SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
@@ -286,26 +270,23 @@ void Subscriber::SubscriberConfig::AuthSecret(const FunctionCallbackInfo<Value>&
 }
 
 void Subscriber::SubscriberConfig::PrintFrameInfo(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
 
-  if (!Util::CheckArgs(isolate, "printFrameInfo", args, 1, 1,
+  if (!Util::CheckArgs("printFrameInfo", args, 1, 1,
     [](const Local<Value> arg0, string& err_msg) { return arg0->IsBoolean(); })) return;
 
   SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
   assert(self);
-  self->config_.print_frame_info = Util::ToBool(isolate, args[0]);
+  self->config_.print_frame_info = Util::ToBool(args[0]);
   args.GetReturnValue().Set(args.Holder());
 }
 
 void Subscriber::SubscriberConfig::AudioSink(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
-
   auto sink = EastWood::AudioSink_None;
   auto filename = ""s;
-  if (!Util::CheckArgs(isolate, "audioSink", args, 1, 2,
-        [&args, isolate, &sink](const Local<Value> arg0, string& err_msg) {
+  if (!Util::CheckArgs("audioSink", args, 1, 2,
+        [&args, &sink](const Local<Value> arg0, string& err_msg) {
           if (!Util::IsV8EnumType(arg0)) return false;
-          sink = static_cast<EastWood::AudioSinkType>(Util::ToEnumType(isolate, arg0));
+          sink = static_cast<EastWood::AudioSinkType>(Util::ToEnumType(arg0));
           if (sink == EastWood::AudioSink_File) {
             if (2 == args.Length()) return true;
             err_msg = "Need sink filename";
@@ -338,14 +319,12 @@ void Subscriber::SubscriberConfig::AudioSink(const FunctionCallbackInfo<Value>& 
 }
 
 void Subscriber::SubscriberConfig::VideoSink(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
-
   auto sink = EastWood::VideoSink_None;
   auto filename = ""s;
-  if (!Util::CheckArgs(isolate, "videoSink", args, 1, 2,
-        [&args, isolate, &sink](const Local<Value> arg0, string& err_msg) {
+  if (!Util::CheckArgs("videoSink", args, 1, 2,
+        [&args, &sink](const Local<Value> arg0, string& err_msg) {
           if (!Util::IsV8EnumType(arg0)) return false;
-          sink = static_cast<EastWood::VideoSinkType>(Util::ToEnumType(isolate, arg0));
+          sink = static_cast<EastWood::VideoSinkType>(Util::ToEnumType(arg0));
           if (sink == EastWood::VideoSink_File) {
             if (2 == args.Length()) return true;
             err_msg = "Need sink filename";
@@ -382,10 +361,8 @@ void Subscriber::SubscriberConfig::VideoSink(const FunctionCallbackInfo<Value>& 
 }
 
 void Subscriber::SubscriberConfig::FFMpegSink(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
-
   auto output = ""s;
-  if (!Util::CheckArgs(isolate, "ffmpegSink", args, 2, 2,
+  if (!Util::CheckArgs("ffmpegSink", args, 2, 2,
         [&output](const Local<Value> arg0, string& err_msg) {
           if (!arg0->IsString()) return false;
           output = Util::ToString(arg0);
@@ -407,21 +384,19 @@ void Subscriber::SubscriberConfig::FFMpegSink(const FunctionCallbackInfo<Value>&
 }
 
 void Subscriber::SubscriberConfig::SubscriptionErrorRetry(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
-
   auto max_retries = 0u;
   auto progression = 0.0;
-  if (!Util::CheckArgs(isolate, "subscriptionErrorRetry", args, 3, 3,
-    [isolate, &max_retries](const Local<Value> arg0, string& err_msg) {
+  if (!Util::CheckArgs("subscriptionErrorRetry", args, 3, 3,
+    [&max_retries](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsUint32()) return false;
-      max_retries = Util::ToUint32(isolate, arg0);
+      max_retries = Util::ToUint32(arg0);
       return true;
     },
     [](const Local<Value> arg1, string& err_msg) { return arg1->IsUint32(); },
-    [isolate, &max_retries, &progression](const Local<Value> arg2, string& err_msg) {
+    [&max_retries, &progression](const Local<Value> arg2, string& err_msg) {
       if (!arg2->IsNumber()) return false;
       if (0 < max_retries) {
-        progression = Util::ToDouble(isolate, arg2);
+        progression = Util::ToDouble(arg2);
       }
       if (progression < 1.0) {
         err_msg = "retry delay progression must be 1.0 or bigger";
@@ -433,15 +408,13 @@ void Subscriber::SubscriberConfig::SubscriptionErrorRetry(const FunctionCallback
   SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
   assert(self);
   self->config_.err_max_retries = max_retries;
-  self->config_.err_retry_delay_init_ms = Util::ToUint32(isolate, args[1]);;
+  self->config_.err_retry_delay_init_ms = Util::ToUint32(args[1]);;
   self->config_.err_retry_delay_progression = progression;
   args.GetReturnValue().Set(args.Holder());
 }
 
 void Subscriber::On(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
-
-  if (!Util::CheckArgs(isolate, "on", args, 2, 2,
+  if (!Util::CheckArgs("on", args, 2, 2,
     [](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
       auto event = Util::ToString(arg0);
@@ -453,18 +426,17 @@ void Subscriber::On(const FunctionCallbackInfo<Value>& args) {
   assert(self);
 
   auto event = Util::ToString(args[0]);
-  self->error_event_listeners_.emplace_back(isolate, Local<Function>::Cast(args[1]));
+  self->error_event_listeners_.emplace_back(args.GetIsolate(), Local<Function>::Cast(args[1]));
 }
 
 void Subscriber::Start(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
-  if (!Util::CheckArgs(isolate, "start", args, 0, 0)) return;
+  if (!Util::CheckArgs("start", args, 0, 0)) return;
   Subscriber* self = Unwrap<Subscriber>(args.Holder());
   assert(self);
 
   AT_LOG_INFO(self->log_, "Starting");
 
-  SubscriberConfig* config = Unwrap<SubscriberConfig>(self->config_.Get(isolate));
+  SubscriberConfig* config = Unwrap<SubscriberConfig>(self->config_.Get(args.GetIsolate()));
   assert(config);
   if (!config->VerifyConfigIntegrity(args)) {
     // thrown
@@ -560,21 +532,49 @@ void Subscriber::CreateFFMpegSinks(SubscriberConfig& config) {
 
 void Subscriber::NotifyError(const string& err) {
   AT_LOG_INFO(log_, "Notifying error: " << err);
-  auto isolate = Isolate::GetCurrent();
   vector<Local<Value>> args;
   if (err.empty()) {
-    args.emplace_back(Undefined(isolate));
+    args.emplace_back(Undefined(Isolate::GetCurrent()));
   } else {
-    args.emplace_back(Exception::Error(Util::ToLocalString(isolate, err)));
+    args.emplace_back(Exception::Error(Util::ToLocalString(err)));
   }
-  for (auto lis : error_event_listeners_) {
+  for (auto& lis : error_event_listeners_) {
     notifier_.Notify(lis, args);
   }
 }
 
+// TODO(Art): trial
+// to keep event_loop alive until the end. may want to start in Start()
+static at::Logger log2;
+class BlockByPromise {
+  explicit BlockByPromise(at::PromisePtr<bool> promise) : promise_(promise) {
+  }
+ public:
+  static BlockByPromise* New(at::PromisePtr<bool> promise) {
+    return new BlockByPromise(promise);
+  }
+  void BlockUntilFuture() {
+
+AT_LOG_INFO(log2, "BlockByPromise: blocking");
+
+    promise_->future()->result();
+
+AT_LOG_INFO(log2, "BlockByPromise: unblocked");
+  }
+ private:
+  at::PromisePtr<bool> promise_;
+};
+static void KeepLoopAlive(uv_work_t* req) {
+  auto blocker = reinterpret_cast<BlockByPromise*>(req->data);
+  blocker->BlockUntilFuture();
+  delete blocker;
+}
+static void AfterWork(uv_work_t* req, int status) {
+AT_LOG_INFO(log2, "After work");
+}
+
 void Subscriber::Stop(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
-  if (!Util::CheckArgs(isolate, "stop", args, 0, 1,
+  if (!Util::CheckArgs("stop", args, 0, 1,
     [](const Local<Value> arg0, string& err_msg) { return arg0->IsFunction(); }
   )) return;
   Subscriber* self = Unwrap<Subscriber>(args.Holder());
@@ -582,30 +582,43 @@ void Subscriber::Stop(const FunctionCallbackInfo<Value>& args) {
 
   AT_LOG_INFO(self->log_, "Stopping");
 
+  auto isolate = args.GetIsolate();
   if (1 == args.Length()) {
-    self->stop_callback_ = Persistent<Function>(isolate, Local<Function>::Cast(args[0]));
+    self->stop_callback_.Reset(isolate, Local<Function>::Cast(args[0]));
   } else {
-    self->stop_callback_ = Persistent<Function>(isolate, 
-                              Function::New(isolate->GetCurrentContext(),
+    self->stop_callback_.Reset(isolate, 
+                               Function::New(isolate->GetCurrentContext(),
                                    [](const FunctionCallbackInfo<Value>& args){}).ToLocalChecked());
   }
+
+// TODO(Art): trial
+uv_work_t work;
+auto promise = at::Promise<bool>::New();
+work.data = BlockByPromise::New(promise);
+uv_queue_work(uv_default_loop(), &work, KeepLoopAlive, AfterWork);
+// this blocks here uv_run(uv_default_loop(), UV_RUN_DEFAULT);
+
 
   if (!self->facade_) {
     // Stopped before Start.
     // calling on_ended listeners with error : that's the same as subscriber's behavior.
-    vector<Local<Value>> args;
-    args.emplace_back(Util::ToLocalValue(isolate, false));
-    self->notifier_.Notify(self->stop_callback_, args);
+    // vector<Local<Value>> args;
+    // args.emplace_back(Util::ToLocalValue(false));
+    // self->notifier_.Notify(self->stop_callback_, args);
+
+// TODO(Art): trial
+promise->Succeed(true);
+
     return;
   }
 
-  self->facade_->Stop()->on_result([self, isolate](exception_ptr ex, bool result) {
+  self->facade_->Stop()->on_result([self](exception_ptr ex, bool result) {
     // TODO(Art): uv_async_send
     // if (ex) {
     //   AT_LOG_ERROR(self->log_, "Stop callback with exception: " << ex);
     //   auto argc = 1;
-    //   Local<Value> argv[] = { Util::ToLocalValue(isolate, false) };
-    //   self->stop_callback_->Call(context, Null(isolate), argc, argv).IsEmpty();
+    //   Local<Value> argv[] = { Util::ToLocalValue(false) };
+    //   self->stop_callback_->Call(context, Null(Isolate::GetCurrent()), argc, argv).IsEmpty();
     //   return;
     // }
     // // TODO: callback
@@ -613,8 +626,7 @@ void Subscriber::Stop(const FunctionCallbackInfo<Value>& args) {
 }
 
 void Subscriber::SubscriberConfig::Verify(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
-  if (!Util::CheckArgs(isolate, "verify", args, 0, 0)) return;
+  if (!Util::CheckArgs("verify", args, 0, 0)) return;
   SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
   assert(self);
   self->VerifyConfigIntegrity(args);
@@ -656,83 +668,82 @@ bool Subscriber::SubscriberConfig::VerifyConfigIntegrity(const FunctionCallbackI
 }
 
 void Subscriber::SubscriberConfig::ToObject(const v8::FunctionCallbackInfo<v8::Value>& args) {
-  auto isolate = args.GetIsolate();
   SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
   assert(self);
-  args.GetReturnValue().Set(self->ToObjectImpl(isolate));
+  args.GetReturnValue().Set(self->ToObjectImpl());
 }
 
-Local<Object> Subscriber::SubscriberConfig::ToObjectImpl(Isolate* isolate) const {
-  assert(isolate);
+Local<Object> Subscriber::SubscriberConfig::ToObjectImpl() const {
+  auto isolate = Isolate::GetCurrent();
   auto context = isolate->GetCurrentContext();
   auto obj = Object::New(isolate);
   auto bixby = Object::New(isolate);
-  obj->Set(context, Util::ToLocalString(isolate, "bixby"), bixby).FromJust();
-  bixby->Set(context, Util::ToLocalString(isolate, "host"),
-                      Util::ToLocalString(isolate, config_.bixby_endpoint.host())).FromJust();
-  bixby->Set(context, Util::ToLocalString(isolate, "port"),
-                      Util::ToLocalInteger(isolate, config_.bixby_endpoint.port())).FromJust();
+  obj->Set(context, Util::ToLocalString("bixby"), bixby).FromJust();
+  bixby->Set(context, Util::ToLocalString("host"),
+                      Util::ToLocalString(config_.bixby_endpoint.host())).FromJust();
+  bixby->Set(context, Util::ToLocalString("port"),
+                      Util::ToLocalInteger(config_.bixby_endpoint.port())).FromJust();
   auto allocator = Object::New(isolate);
-  obj->Set(context, Util::ToLocalString(isolate, "allocator"), allocator).FromJust();
-  allocator->Set(context, Util::ToLocalString(isolate, "host"),
-                      Util::ToLocalString(isolate, config_.bixby_allocator_endpoint.host())).FromJust();
-  allocator->Set(context, Util::ToLocalString(isolate, "port"),
-                      Util::ToLocalInteger(isolate, config_.bixby_allocator_endpoint.port())).FromJust();
-  allocator->Set(context, Util::ToLocalString(isolate, "loc"),
-                      Util::ToLocalString(isolate, config_.alloc_location)).FromJust();
+  obj->Set(context, Util::ToLocalString("allocator"), allocator).FromJust();
+  allocator->Set(context, Util::ToLocalString("host"),
+                      Util::ToLocalString(config_.bixby_allocator_endpoint.host())).FromJust();
+  allocator->Set(context, Util::ToLocalString("port"),
+                      Util::ToLocalInteger(config_.bixby_allocator_endpoint.port())).FromJust();
+  allocator->Set(context, Util::ToLocalString("loc"),
+                      Util::ToLocalString(config_.alloc_location)).FromJust();
   auto notifier = Object::New(isolate);
-  obj->Set(context, Util::ToLocalString(isolate, "notifier"), notifier).FromJust();
-  notifier->Set(context, Util::ToLocalString(isolate, "host"),
-                      Util::ToLocalString(isolate, config_.notifier_endpoint.host())).FromJust();
-  notifier->Set(context, Util::ToLocalString(isolate, "port"),
-                      Util::ToLocalInteger(isolate, config_.notifier_endpoint.port())).FromJust();
-  notifier->Set(context, Util::ToLocalString(isolate, "tag"),
-                      Util::ToLocalString(isolate, config_.tag)).FromJust();
-  notifier->Set(context, Util::ToLocalString(isolate, "tls"),
-                      Util::ToLocalBoolean(isolate, config_.use_tls_for_notifier)).FromJust();
-  notifier->Set(context, Util::ToLocalString(isolate, "cert"),
-                      Util::ToLocalBoolean(isolate, !config_.no_notifier_cert_check)).FromJust();
-  obj->Set(context, Util::ToLocalString(isolate, "duration_ms"),
-                      Util::ToLocalInteger(isolate, chrono::duration_cast<chrono::milliseconds>(config_.duration).count())).FromJust();
-  obj->Set(context, Util::ToLocalString(isolate, "userId"),
-                      Util::ToLocalString(isolate, config_.user_id)).FromJust();
-  obj->Set(context, Util::ToLocalString(isolate, "streamURL"),
-                      Util::ToLocalString(isolate, config_.stream_url)).FromJust();
-  obj->Set(context, Util::ToLocalString(isolate, "cert"),
-                      Util::ToLocalBoolean(isolate, !config_.no_cert_check)).FromJust();
-  obj->Set(context, Util::ToLocalString(isolate, "secret"),
-                      Util::ToLocalString(isolate, config_.auth_secret)).FromJust();
-  obj->Set(context, Util::ToLocalString(isolate, "frameInfo"),
-                      Util::ToLocalBoolean(isolate, config_.print_frame_info)).FromJust();
+  obj->Set(context, Util::ToLocalString("notifier"), notifier).FromJust();
+  notifier->Set(context, Util::ToLocalString("host"),
+                      Util::ToLocalString(config_.notifier_endpoint.host())).FromJust();
+  notifier->Set(context, Util::ToLocalString("port"),
+                      Util::ToLocalInteger(config_.notifier_endpoint.port())).FromJust();
+  notifier->Set(context, Util::ToLocalString("tag"),
+                      Util::ToLocalString(config_.tag)).FromJust();
+  notifier->Set(context, Util::ToLocalString("tls"),
+                      Util::ToLocalBoolean(config_.use_tls_for_notifier)).FromJust();
+  notifier->Set(context, Util::ToLocalString("cert"),
+                      Util::ToLocalBoolean(!config_.no_notifier_cert_check)).FromJust();
+  obj->Set(context, Util::ToLocalString("duration_ms"),
+                      Util::ToLocalInteger(chrono::duration_cast<chrono::milliseconds>(config_.duration).count())).FromJust();
+  obj->Set(context, Util::ToLocalString("userId"),
+                      Util::ToLocalString(config_.user_id)).FromJust();
+  obj->Set(context, Util::ToLocalString("streamURL"),
+                      Util::ToLocalString(config_.stream_url)).FromJust();
+  obj->Set(context, Util::ToLocalString("cert"),
+                      Util::ToLocalBoolean(!config_.no_cert_check)).FromJust();
+  obj->Set(context, Util::ToLocalString("secret"),
+                      Util::ToLocalString(config_.auth_secret)).FromJust();
+  obj->Set(context, Util::ToLocalString("frameInfo"),
+                      Util::ToLocalBoolean(config_.print_frame_info)).FromJust();
   if (!ffmpeg_output_.empty()) {
     auto ffmpeg = Object::New(isolate);
-    obj->Set(context, Util::ToLocalString(isolate, "ffmpeg"), ffmpeg).FromJust();
-    ffmpeg->Set(context, Util::ToLocalString(isolate, "output"),
-                         Util::ToLocalString(isolate, ffmpeg_output_)).FromJust();
-    ffmpeg->Set(context, Util::ToLocalString(isolate, "params"),
-                         Util::ToLocalString(isolate, ffmpeg_param_)).FromJust();
+    obj->Set(context, Util::ToLocalString("ffmpeg"), ffmpeg).FromJust();
+    ffmpeg->Set(context, Util::ToLocalString("output"),
+                         Util::ToLocalString(ffmpeg_output_)).FromJust();
+    ffmpeg->Set(context, Util::ToLocalString("params"),
+                         Util::ToLocalString(ffmpeg_param_)).FromJust();
   } else {
     auto audio = Object::New(isolate);
-    obj->Set(context, Util::ToLocalString(isolate, "audio"), audio).FromJust();
-    audio->Set(context, Util::ToLocalString(isolate, "sink"),
-                        Util::ToLocalString(isolate, EastWood::AudioSinkString(audio_sink_))).FromJust();
-    audio->Set(context, Util::ToLocalString(isolate, "filename"),
-                        Util::ToLocalString(isolate, audio_sink_filename_)).FromJust();
+    obj->Set(context, Util::ToLocalString("audio"), audio).FromJust();
+    audio->Set(context, Util::ToLocalString("sink"),
+                        Util::ToLocalString(EastWood::AudioSinkString(audio_sink_))).FromJust();
+    audio->Set(context, Util::ToLocalString("filename"),
+                        Util::ToLocalString(audio_sink_filename_)).FromJust();
     auto video = Object::New(isolate);
-    obj->Set(context, Util::ToLocalString(isolate, "video"), video).FromJust();
-    video->Set(context, Util::ToLocalString(isolate, "sink"),
-                        Util::ToLocalString(isolate, EastWood::VideoSinkString(video_sink_))).FromJust();
-    video->Set(context, Util::ToLocalString(isolate, "filename"),
-                        Util::ToLocalString(isolate, video_sink_filename_)).FromJust();
+    obj->Set(context, Util::ToLocalString("video"), video).FromJust();
+    video->Set(context, Util::ToLocalString("sink"),
+                        Util::ToLocalString(EastWood::VideoSinkString(video_sink_))).FromJust();
+    video->Set(context, Util::ToLocalString("filename"),
+                        Util::ToLocalString(video_sink_filename_)).FromJust();
   }
   auto retry = Object::New(isolate);
-  obj->Set(context, Util::ToLocalString(isolate, "retry"), retry).FromJust();
-  retry->Set(context, Util::ToLocalString(isolate, "max"),
-                      Util::ToLocalInteger(isolate, config_.err_max_retries)).FromJust();
-  retry->Set(context, Util::ToLocalString(isolate, "initDelay_ms"),
-                      Util::ToLocalInteger(isolate, config_.err_retry_delay_init_ms)).FromJust();
-  retry->Set(context, Util::ToLocalString(isolate, "progression"),
-                      Util::ToLocalNumber(isolate, config_.err_retry_delay_progression)).FromJust();
+  obj->Set(context, Util::ToLocalString("retry"), retry).FromJust();
+  retry->Set(context, Util::ToLocalString("max"),
+                      Util::ToLocalInteger(config_.err_max_retries)).FromJust();
+  retry->Set(context, Util::ToLocalString("initDelay_ms"),
+                      Util::ToLocalInteger(config_.err_retry_delay_init_ms)).FromJust();
+  retry->Set(context, Util::ToLocalString("progression"),
+                      Util::ToLocalNumber(config_.err_retry_delay_progression)).FromJust();
   return obj;
 }
 
@@ -743,21 +754,21 @@ Subscriber::SubscriberConfig::SubscriberConfig()
 
 void Subscriber::SubscriberConfig::Init(Local<Object> exports) {
   Util::InitClass(exports, "SubscriberConfig", New, constructor,
-            Util::Prototype("bixby"s, Bixby),
-            Util::Prototype("bixbyAllocator"s, BixbyAllocator),
-            Util::Prototype("streamNotifier"s, StreamNotifier),
-            Util::Prototype("duration"s, Duration),
-            Util::Prototype("userId"s, UserId),
-            Util::Prototype("streamUrl"s, StreamUrl),
-            Util::Prototype("certCheck"s, CertCheck),
-            Util::Prototype("authSecret"s, AuthSecret),
-            Util::Prototype("printFrameInfo"s, PrintFrameInfo),
-            Util::Prototype("audioSink"s, AudioSink),
-            Util::Prototype("videoSink"s, VideoSink),
-            Util::Prototype("ffmpegSink"s, FFMpegSink),
-            Util::Prototype("subscriptionErrorRetry"s, SubscriptionErrorRetry),
-            Util::Prototype("verify"s, Verify),
-            Util::Prototype("toObject"s, ToObject));
+            Util::Prototype("bixby", Bixby),
+            Util::Prototype("bixbyAllocator", BixbyAllocator),
+            Util::Prototype("streamNotifier", StreamNotifier),
+            Util::Prototype("duration", Duration),
+            Util::Prototype("userId", UserId),
+            Util::Prototype("streamUrl", StreamUrl),
+            Util::Prototype("certCheck", CertCheck),
+            Util::Prototype("authSecret", AuthSecret),
+            Util::Prototype("printFrameInfo", PrintFrameInfo),
+            Util::Prototype("audioSink", AudioSink),
+            Util::Prototype("videoSink", VideoSink),
+            Util::Prototype("ffmpegSink", FFMpegSink),
+            Util::Prototype("subscriptionErrorRetry", SubscriptionErrorRetry),
+            Util::Prototype("verify", Verify),
+            Util::Prototype("toObject", ToObject));
 }
 
 Local<Object> Subscriber::SubscriberConfig::NewInstance(const FunctionCallbackInfo<Value>& args) {
@@ -772,10 +783,10 @@ void Subscriber::SubscriberConfig::New(const FunctionCallbackInfo<Value>& args) 
 
 void Subscriber::Init(Local<Object> exports) {
   Util::InitClass(exports, "Subscriber", New, constructor,
-            Util::Prototype("configuration"s, Configuration),
-            Util::Prototype("on"s, On),
-            Util::Prototype("start"s, Start),
-            Util::Prototype("stop"s, Stop)
+            Util::Prototype("configuration", Configuration),
+            Util::Prototype("on", On),
+            Util::Prototype("start", Start),
+            Util::Prototype("stop", Stop)
   );
 
   SubscriberConfig::Init(exports);

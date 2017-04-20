@@ -89,7 +89,9 @@
       ],
 
       'libraries': [
-        '-lpthread', '-luv',
+        '-lpthread',
+        '-luv',
+        # '/opt/git/libuv/.libs/libuv.a',  # for debug
         # relative path from build/ directory
         '../../build/osx-x86_64-release/mediacore/mediacore/libmediacore.a',
         '../../build/osx-x86_64-release/carmel/carmel/libcarmel.a',
@@ -218,7 +220,7 @@
         "../at-deps/third_party/boost/src",
         "../at-deps/third_party/ffmpeg/src",
         "../at-deps/ffmpeg/build/x86_64",
-        "../at-deps/third_party/jsoncpp/include",
+        "../at-deps/third_party/jsoncpp/include"
         # It conflicts V8 framework, which uses openssl
         # "../at-deps/third_party/boringssl/src/include"
       ],

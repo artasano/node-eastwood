@@ -163,7 +163,7 @@ class Subscriber : public node::ObjectWrap {
     std::string ffmpeg_output_;
     std::string ffmpeg_param_;
 
-    v8::Local<v8::Object> ToObjectImpl(v8::Isolate* isolate) const;
+    v8::Local<v8::Object> ToObjectImpl() const;
     bool VerifyConfigIntegrity(const v8::FunctionCallbackInfo<v8::Value>& args) const;
 
     static v8::Local<v8::Object> NewInstance(const v8::FunctionCallbackInfo<v8::Value>& args);

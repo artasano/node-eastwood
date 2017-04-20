@@ -84,10 +84,11 @@ EastWood::EastWood(LogLevel level, bool log_to_console, bool log_to_syslog, cons
     at::InitLogging(log_to_console, log_to_syslog, log_props);
     SetLogLevel(level);
 
-    auto result = uv_run(uv_default_loop(), UV_RUN_DEFAULT);
-    if (0 != result) {
-      Util::ThrowException(Isolate::GetCurrent(), Exception::Error, "Failed to uv_run " + to_string(result));
-    }
+// Seems uv_run needs to be called when there's something to process
+    // auto result = uv_run(uv_default_loop(), UV_RUN_DEFAULT);
+    // if (0 != result) {
+    //   Util::ThrowException(Exception::Error, "Failed to uv_run " + to_string(result));
+    // }
   }
 }
 
@@ -122,7 +123,7 @@ string EastWood::VideoSinkString(VideoSinkType sink) {
 
 void EastWood::Init(Local<Object> exports) {
   Util::InitClass(exports, "EastWood", New, constructor,
-          Util::Prototype("createSubscriber"s, CreateSubscriber),
+          Util::Prototype("createSubscriber", CreateSubscriber),
 
           AT_ADDON_CLASS_ENUM(LogLevel_Fatal),
           AT_ADDON_CLASS_ENUM(LogLevel_Error),
@@ -140,12 +141,11 @@ void EastWood::Init(Local<Object> exports) {
 }
 
 void EastWood::New(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
   auto log_level = LogLevel_Info;
-  if (!Util::CheckArgs(isolate, "EastWood", args, 3, 4,
-      [&log_level, isolate](Local<Value> arg0, string& err_msg) {
+  if (!Util::CheckArgs("EastWood", args, 3, 4,
+      [&log_level](Local<Value> arg0, string& err_msg) {
         if (!Util::IsV8EnumType(arg0)) return false;
-        log_level = static_cast<LogLevel>(Util::ToEnumType(isolate, arg0));
+        log_level = static_cast<LogLevel>(Util::ToEnumType(arg0));
         if (log_level < LogLevel_Fatal || LogLevel_Debug < log_level) {
           err_msg = "Incorrect log level value " + to_string(log_level);
           return false;
@@ -156,15 +156,14 @@ void EastWood::New(const FunctionCallbackInfo<Value>& args) {
       [](Local<Value> arg2, string& err_msg) { return arg2->IsBoolean(); },
       [](Local<Value> arg3, string& err_msg) { return arg3->IsString(); })) return;
 
-  auto log_to_console = Util::ToBool(isolate, args[1]);
-  auto log_to_syslog = Util::ToBool(isolate, args[2]);
+  auto log_to_console = Util::ToBool(args[1]);
+  auto log_to_syslog = Util::ToBool(args[2]);
   auto log_props_file = ((3 < args.Length()) ? Util::ToString(args[3]) : ""s);
   Util::NewCppInstance<EastWood>(args, new EastWood(log_level, log_to_console, log_to_syslog, log_props_file));
 }
 
 void EastWood::CreateSubscriber(const FunctionCallbackInfo<Value>& args) {
-  auto isolate = args.GetIsolate();
-  if (!Util::CheckArgs(isolate, "createSubscriber", args, 0, 0)) return;
+  if (!Util::CheckArgs("createSubscriber", args, 0, 0)) return;
 
   args.GetReturnValue().Set(Subscriber::NewInstance(args));
 }

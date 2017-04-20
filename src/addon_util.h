@@ -23,10 +23,10 @@ struct Util {
   static std::string ToString(const v8::Local<v8::Value> v8str);
 
   /// Inspects V8 value
-  static std::string Inspect(v8::Isolate* isolate, v8::Local<v8::Value> value);
+  static std::string Inspect(v8::Local<v8::Value> value);
 
   /// Throws an Exception
-  static void ThrowException(v8::Isolate* isolate,
+  static void ThrowException(
                     v8::Local<v8::Value>(* ex)(v8::Local<v8::String>), const std::string& msg);
 
   /// Throws an Exception with class name
@@ -36,60 +36,60 @@ struct Util {
                     const std::string& msg);
 
   /// Converts V8 Int32 to int32_t @throw std::logic_error if @a val is not convertible to int32_t
-  static int32_t ToInt32(v8::Isolate* isolate, v8::Local<v8::Value> val);
+  static int32_t ToInt32(v8::Local<v8::Value> val);
 
   /// Converts V8 Uint32 to uint32_t @throw std::logic_error if @a val is not convertible to uint32_t
-  static uint32_t ToUint32(v8::Isolate* isolate, v8::Local<v8::Value> val);
+  static uint32_t ToUint32(v8::Local<v8::Value> val);
 
   /// Converts V8 Number to double @throw std::logic_error if @a val is not convertible to double
-  static double ToDouble(v8::Isolate* isolate, v8::Local<v8::Value> val);
+  static double ToDouble(v8::Local<v8::Value> val);
 
   /// Converts V8 Bool to bool
-  static bool ToBool(v8::Isolate* isolate, v8::Local<v8::Value> val);
+  static bool ToBool(v8::Local<v8::Value> val);
 
   // ToLocal family
 
   /// Converts C++ bool to v8::Local<v8::Value>
-  static v8::Local<v8::Value> ToLocalValue(v8::Isolate* isolate, bool value);
+  static v8::Local<v8::Value> ToLocalValue(bool value);
 
   /// Converts C++ int32_t to v8::Local<v8::Value>
-  static v8::Local<v8::Value> ToLocalValue(v8::Isolate* isolate, int32_t value);
+  static v8::Local<v8::Value> ToLocalValue(int32_t value);
 
   /// Converts C++ uint32_t to v8::Local<v8::Value>
-  static v8::Local<v8::Value> ToLocalValue(v8::Isolate* isolate, uint32_t value);
+  static v8::Local<v8::Value> ToLocalValue(uint32_t value);
 
   /// Converts C++ int64_t to v8::Local<v8::Value> (trims to int32_t)
-  static v8::Local<v8::Value> ToLocalValue(v8::Isolate* isolate, int64_t value);
+  static v8::Local<v8::Value> ToLocalValue(int64_t value);
 
   /// Converts C++ uint64_t to v8::Local<v8::Value> (trims to uint32_t)
-  static v8::Local<v8::Value> ToLocalValue(v8::Isolate* isolate, uint64_t value);
+  static v8::Local<v8::Value> ToLocalValue(uint64_t value);
 
   /// Converts C++ double to v8::Local<v8::Value>
-  static v8::Local<v8::Value> ToLocalValue(v8::Isolate* isolate, double value);
+  static v8::Local<v8::Value> ToLocalValue(double value);
 
   /// Converts C++ string to v8::Local<v8::Value>
-  static v8::Local<v8::Value> ToLocalValue(v8::Isolate* isolate, const std::string& value);
+  static v8::Local<v8::Value> ToLocalValue(const std::string& value);
 
   /// Converts C++ bool to v8::Local<v8::Boolean>
-  static v8::Local<v8::Boolean> ToLocalBoolean(v8::Isolate* isolate, bool value);
+  static v8::Local<v8::Boolean> ToLocalBoolean(bool value);
 
   /// Converts C++ int32_t to v8::Local<v8::Integer>
-  static v8::Local<v8::Integer> ToLocalInteger(v8::Isolate* isolate, int32_t value);
+  static v8::Local<v8::Integer> ToLocalInteger(int32_t value);
 
   /// Converts C++ uint32_t to v8::Local<v8::Integer>
-  static v8::Local<v8::Integer> ToLocalInteger(v8::Isolate* isolate, uint32_t value);
+  static v8::Local<v8::Integer> ToLocalInteger(uint32_t value);
 
   /// Converts C++ int64_t to v8::Local<v8::Integer> (trims to int32_t)
-  static v8::Local<v8::Integer> ToLocalInteger(v8::Isolate* isolate, int64_t value);
+  static v8::Local<v8::Integer> ToLocalInteger(int64_t value);
 
   /// Converts C++ uint64_t to v8::Local<v8::Integer> (trims to uint32_t)
-  static v8::Local<v8::Integer> ToLocalInteger(v8::Isolate* isolate, uint64_t value);
+  static v8::Local<v8::Integer> ToLocalInteger(uint64_t value);
 
   /// Converts C++ double to v8::Local<v8::Number>
-  static v8::Local<v8::Number> ToLocalNumber(v8::Isolate* isolate, double value);
+  static v8::Local<v8::Number> ToLocalNumber(double value);
 
   /// Converts C++ string to v8::Local<v8::String>
-  static v8::Local<v8::String> ToLocalString(v8::Isolate* isolate, const std::string& value);
+  static v8::Local<v8::String> ToLocalString(const std::string& value);
 
   // InitClass family
 
@@ -104,7 +104,7 @@ struct Util {
   static bool IsV8EnumType(const v8::Local<v8::Value>& val);
 
   /// Gets the value @throw if @a val type is not V8EnumType
-  static EnumType ToEnumType(v8::Isolate* isolate, const v8::Local<v8::Value>& val);
+  static EnumType ToEnumType(const v8::Local<v8::Value>& val);
 
   /// Creates enum spec for InitClass. Usefill if enum name is unqualified
 #define AT_ADDON_CLASS_ENUM(ENUM) at::node_addon::Util::Enum(#ENUM, ENUM)
@@ -145,25 +145,20 @@ struct Util {
    */
   template <class... CheckFunc>
   static bool CheckArgs(
-          v8::Isolate* isolate, const std::string& context, 
+          const std::string& context, 
           const v8::FunctionCallbackInfo<v8::Value>& args,
           size_t min_num_args, size_t max_num_args,
           CheckFunc&&... checks);
 };
+
 
 /**
  * A helper class to call Node JS function from any thread
  */
 class Notifier {
  public:
-  /// Constructs. This needs to be used in Node JS thread. 
+   /// Constructs. This needs to be used in Node JS thread.
   Notifier();
-
-  /// Sends a call. It can be called in any thread.
-  void Notify(v8::Local<v8::Function> listener, const std::vector<v8::Local<v8::Value>>& args);
-
-  /// Sends a call. It can be called in any thread.
-  void Notify(v8::Persistent<v8::Function> listener, const std::vector<v8::Local<v8::Value>>& args);
 
   /// Sends a call. It can be called in any thread.
   void Notify(PersistentFunctionCopyable listener, const std::vector<v8::Local<v8::Value>>& args);
@@ -172,11 +167,10 @@ class Notifier {
 
  private:
   uv_async_t async_;
-  PersistentFunctionCopyable listener_;
   Mutex funcs_mutex_;
-  using FuncList = std::vector<
-                    std::pair<PersistentFunctionCopyable, std::vector<PersistentValueCopyable>>
-                   >;
+  using FuncList = std::vector<std::pair<PersistentFunctionCopyable, 
+                                         std::vector<PersistentValueCopyable>>
+                    >;
   FuncList funcs_;
 
   static void DoNotify(uv_async_t* handle);
