@@ -5,7 +5,8 @@
       "sources": [
         "src/eastwood_addon.cc",
         "src/addon_util.cc",
-        "src/eastwood.cc"
+        "src/eastwood.cc",
+        "src/subscriber.cc"
       ],
 
       # 'defines' does not work here
@@ -13,7 +14,6 @@
       #   'AT_ENABLE_THREAD_ANNOTATIONS', 'AT_USE_LOCK_STYLE_THREAD_SAFETY_ATTRIBUTES'
       # ],
 
-      # note: needs a patch with /usr/local/lib/node_modules/node-gyp/gyp/pylib/gyp/generator/make.py for cflags to take effect on Mac
       'cflags_cc': [
         '-std=c++14', '-g', '-stdlib=libc++', '-pipe',
         '-Qunused-arguments', '-Wno-unused-parameter', '-Wno-unused-function', '-Wno-shorten-64-to-32', '-Wno-attributes',
@@ -85,11 +85,11 @@
       ],
 
       'ldflags': [
-        '-search_paths_first', '-headerpad_max_install_names'
+        '-Wl,-search_paths_first', '-headerpad_max_install_names'
       ],
 
       'libraries': [
-        '-lpthread',
+        '-lpthread', '-luv',
         # relative path from build/ directory
         '../../build/osx-x86_64-release/mediacore/mediacore/libmediacore.a',
         '../../build/osx-x86_64-release/carmel/carmel/libcarmel.a',
@@ -100,20 +100,22 @@
         '../../build/osx-x86_64-release/libtecate/tecate/libtecate_legacy_pubsubproto.a',
         '../../build/osx-x86_64-release/libtecate/tecate/libstream_managementproto.a',
         '../../build/osx-x86_64-release/libtecate/tecate/libtecate_commonproto.a',
+        '../../build/osx-x86_64-release/eastwood-core/facade/libew-facade.a',
         '../../build/osx-x86_64-release/eastwood-core/eastwood/libew-common.a',
         '../../build/osx-x86_64-release/eastwood-core/eastwood/libew-source.a',
         '../../build/osx-x86_64-release/eastwood-core/eastwood/libew-sink.a',
         '../../build/osx-x86_64-release/eastwood-core/eastwood/libew-ffmpeg.a',
         '../../build/osx-x86_64-release/eastwood-core/eastwood/libew-subscribe.a',
-        '../../build/osx-x86_64-release/eastwood-core/ffmpeg/build/x86_64/libavformat/libavformat.a',
-        '../../build/osx-x86_64-release/eastwood-core/ffmpeg/build/x86_64/libavcodec/libavcodec.a',
-        '../../build/osx-x86_64-release/eastwood-core/ffmpeg/build/x86_64/libswscale/libswscale.a',
-        '../../build/osx-x86_64-release/eastwood-core/ffmpeg/build/x86_64/libswresample/libswresample.a',
-        '../../build/osx-x86_64-release/eastwood-core/ffmpeg/build/x86_64/libavfilter/libavfilter.a',
-        '../../build/osx-x86_64-release/eastwood-core/ffmpeg/build/x86_64/libavutil/libavutil.a',
-        '../../build/osx-x86_64-release/eastwood-core/x264/build/x86_64/libx264.a',
-        '../../build/osx-x86_64-release/eastwood-core/rtmpdump/build/x86_64/lib/librtmp.a',
-        '../../build/osx-x86_64-release/eastwood-core/freetype/libfreetype.a',
+        '../../build/osx-x86_64-release/eastwood-core/eastwood/libew-stats.a',
+        '../../build/osx-x86_64-release/ffmpeg/build/x86_64/libavformat/libavformat.a',
+        '../../build/osx-x86_64-release/ffmpeg/build/x86_64/libavcodec/libavcodec.a',
+        '../../build/osx-x86_64-release/ffmpeg/build/x86_64/libswscale/libswscale.a',
+        '../../build/osx-x86_64-release/ffmpeg/build/x86_64/libswresample/libswresample.a',
+        '../../build/osx-x86_64-release/ffmpeg/build/x86_64/libavfilter/libavfilter.a',
+        '../../build/osx-x86_64-release/ffmpeg/build/x86_64/libavutil/libavutil.a',
+        '../../build/osx-x86_64-release/x264/build/x86_64/libx264.a',
+        '../../build/osx-x86_64-release/rtmpdump/build/x86_64/lib/librtmp.a',
+        '../../build/osx-x86_64-release/freetype/libfreetype.a',
         '../../build/osx-x86_64-release/boost/libat_boost_execution_monitor.a',
         '../../build/osx-x86_64-release/boost/libat_boost_random.a',
         '../../build/osx-x86_64-release/boost/libat_boost_system.a',
@@ -217,7 +219,8 @@
         "../at-deps/third_party/ffmpeg/src",
         "../at-deps/ffmpeg/build/x86_64",
         "../at-deps/third_party/jsoncpp/include",
-        # trying isystem "../at-deps/third_party/boringssl/src/include"
+        # It conflicts V8 framework, which uses openssl
+        # "../at-deps/third_party/boringssl/src/include"
       ],
 
       'defines':  [
@@ -231,22 +234,24 @@
               'GCC_ENABLE_CPP_RTTI': 'YES',
               'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
               'OTHER_CFLAGS': [
-                '-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk',
-                '-mmacosx-version-min=10.9',
-                '-framework VideoToolbox', '-framework VideoDecodeAcceleration', '-framework Security',
-                '-framework CoreServices', '-framework OpenGL', '-framework QTKit', '-framework Cocoa', '-framework AudioToolbox',
-                '-framework CoreAudio', '-framework IOKit', '-framework AVFoundation', '-framework CoreMedia', '-framework CoreVideo',
-                '-framework Foundation'
               ],
               'OTHER_LDFLAGS': [
               ]
             },
             
+            # note: needs patches in /usr/local/lib/node_modules/node-gyp/gyp/pylib/gyp/generator/make.py for cflags and ldflags to take effect on Mac
+
             'cflags': [
+              '-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk'
             ],
 
             'ldflags': [
-              '-L../../build/osx-x86_64'
+              '-bundle', '-undefined dynamic_lookup', '-Wl,-no_pie', '-arch x86_64',
+              '-mmacosx-version-min=10.9',
+              '-framework VideoToolbox', '-framework VideoDecodeAcceleration', '-framework Security',
+              '-framework CoreServices', '-framework OpenGL', '-framework QTKit', '-framework Cocoa', '-framework AudioToolbox',
+              '-framework CoreAudio', '-framework IOKit', '-framework AVFoundation', '-framework CoreMedia', '-framework CoreVideo',
+              '-framework Foundation'
             ],
 
             'include_dirs': [

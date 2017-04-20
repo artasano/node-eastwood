@@ -34,20 +34,20 @@ using std::to_string;
 using std::pair;
 using std::forward;
 
-namespace {
-
 // InitClass implementation
+
+namespace {
 
 void SetUpClassProp(Local<Object> exports, Local<FunctionTemplate> tpl) {}
 
 template <class... Rest>
 void SetUpClassProp(
-            Local<Object> exports, Local<FunctionTemplate> tpl, 
+            Local<Object> exports, Local<FunctionTemplate> tpl,
             const pair<string, int>& enm, Rest&&... rest);
 
 template <class... Rest>
 void SetUpClassProp(
-            Local<Object> exports, Local<FunctionTemplate> tpl, 
+            Local<Object> exports, Local<FunctionTemplate> tpl,
             const pair<string, FunctionCallback>& method, Rest&&... rest) {
   auto isolate = exports->GetIsolate();
   NODE_SET_PROTOTYPE_METHOD(tpl, method.first.c_str(), method.second);
@@ -56,7 +56,7 @@ void SetUpClassProp(
 
 template <class... Rest>
 void SetUpClassProp(
-          Local<Object> exports, Local<FunctionTemplate> tpl, 
+          Local<Object> exports, Local<FunctionTemplate> tpl,
           const pair<string, Util::EnumType>& enm, Rest&&... rest) {
   auto isolate = exports->GetIsolate();
   auto context = isolate->GetCurrentContext();
@@ -106,13 +106,13 @@ bool CheckArg(
         CheckFunc&& check, RestOfCheckFunc&&... rest) {
 
   assert(isolate);
-  
+
   auto err_msg = ""s;
   if (!check(args[N], err_msg)) {
     Util::ThrowException(args, Exception::TypeError,
-        context + ": "
+        context + ": Wrong argument at " + to_string(N) + ". "
         + (err_msg.empty()
-           ? "Wrong argument at " + to_string(N) + " given " + Util::Inspect(isolate, args[N])
+           ? "given " + Util::Inspect(isolate, args[N])
            : err_msg));
     return false;
   }
@@ -132,12 +132,12 @@ bool Util::CheckArgs(
 
   // Check the number of arguments passed.
   if (args.Length() < min_num_args)  {
-    ThrowException(args, Exception::TypeError, 
+    ThrowException(args, Exception::TypeError,
         context + ": Needs " + to_string(min_num_args) + " args but given " + to_string(args.Length()));
     return false;
   }
   if (max_num_args < args.Length()) {
-    ThrowException(args, Exception::TypeError, 
+    ThrowException(args, Exception::TypeError,
         context + ": Takes " + to_string(max_num_args) + " args but given " + to_string(args.Length()));
     return false;
   }

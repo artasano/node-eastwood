@@ -110,17 +110,11 @@ describe('EastWood', function() {
 
     expect(EastWood.AudioSink_None).to.be.a('number');
     expect(EastWood.AudioSink_File).to.be.a('number');
-    expect(EastWood.AudioSink_FFMpeg).to.be.a('number');
     expect(EastWood.AudioSink_None).to.not.equal(EastWood.AudioSink_File);
-    expect(EastWood.AudioSink_None).to.not.equal(EastWood.AudioSink_FFMpeg);
-    expect(EastWood.AudioSink_File).to.not.equal(EastWood.AudioSink_FFMpeg);
 
     expect(EastWood.VideoSink_None).to.be.a('number');
     expect(EastWood.VideoSink_File).to.be.a('number');
-    expect(EastWood.VideoSink_FFMpeg).to.be.a('number');
     expect(EastWood.VideoSink_None).to.not.equal(EastWood.VideoSink_File);
-    expect(EastWood.VideoSink_None).to.not.equal(EastWood.VideoSink_FFMpeg);
-    expect(EastWood.VideoSink_File).to.not.equal(EastWood.VideoSink_FFMpeg);
   });
   describe('createSubscriber', function() {
     it('should create subscriber', function() {
@@ -143,11 +137,11 @@ describe('EastWood', function() {
   });
 
   describe('Subscriber', function() {
-    describe('Configure', function() {
+    describe('Configuration', function() {
       describe('bixby', function() {
         it('should throw if given insufficient args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.bixby();
             expect(false).to.be.ok;
@@ -169,7 +163,7 @@ describe('EastWood', function() {
         });
         it('should throw if given more args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.bixby('aaa', 22, 33);
             expect(false).to.be.ok;
@@ -182,7 +176,7 @@ describe('EastWood', function() {
         });
         it('should throw if given incorrect args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.bixby(123, 456);
             expect(false).to.be.ok;
@@ -193,18 +187,27 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('given 123');
           }
           try {
-            c.bixby('host', 'abc');
+            c.bixby('', 456);
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('bixby');
+            expect(e.toString()).to.contain('Wrong argument at 0');
+            expect(e.toString()).to.contain('hostname cannot be empty');
+          }
+          try {
+            c.bixby('host', 0);
             expect(false).to.be.ok;
           } catch (e) {
             expect(e.toString()).to.contain('SubscriberConfig');
             expect(e.toString()).to.contain('bixby');
             expect(e.toString()).to.contain('Wrong argument at 1');
-            expect(e.toString()).to.contain('given abc');
+            expect(e.toString()).to.contain('port number cannot be zero');
           }
         });
         it('should set if given correct args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure()
+          const c = ew.createSubscriber().configuration()
                         .bixby('host-abc', 987)
                         .toObject();
           expect(c.bixby).to.be.ok;
@@ -216,7 +219,7 @@ describe('EastWood', function() {
       describe('allocator', function() {
         it('should throw if given insufficient args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.bixbyAllocator();
             expect(false).to.be.ok;
@@ -247,7 +250,7 @@ describe('EastWood', function() {
         });
         it('should throw if given more args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.bixbyAllocator('aaa', 11, 'bbb', 22);
             expect(false).to.be.ok;
@@ -260,7 +263,7 @@ describe('EastWood', function() {
         });
         it('should throw if given incorrect args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.bixbyAllocator(123, 456, 'lll');
             expect(false).to.be.ok;
@@ -269,6 +272,15 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('bixbyAllocator');
             expect(e.toString()).to.contain('Wrong argument at 0');
             expect(e.toString()).to.contain('given 123');
+          }
+          try {
+            c.bixbyAllocator('', 456, 'lll');
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('bixbyAllocator');
+            expect(e.toString()).to.contain('Wrong argument at 0');
+            expect(e.toString()).to.contain('hostname cannot be empty');
           }
           try {
             c.bixbyAllocator('host', 'abc', 'lll');
@@ -280,6 +292,15 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('given abc');
           }
           try {
+            c.bixbyAllocator('host', 0, 'lll');
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('bixbyAllocator');
+            expect(e.toString()).to.contain('Wrong argument at 1');
+            expect(e.toString()).to.contain('port number cannot be zero');
+          }
+          try {
             c.bixbyAllocator('host', 123, 456);
             expect(false).to.be.ok;
           } catch (e) {
@@ -288,10 +309,19 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('Wrong argument at 2');
             expect(e.toString()).to.contain('given 456');
           }
+          try {
+            c.bixbyAllocator('host', 123, '');
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('bixbyAllocator');
+            expect(e.toString()).to.contain('Wrong argument at 2');
+            expect(e.toString()).to.contain('location cannot be empty');
+          }
         });
         it('should set if given correct args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure()
+          const c = ew.createSubscriber().configuration()
                         .bixbyAllocator('host-abc', 987, 'lll')
                         .toObject();
           expect(c.allocator).to.be.ok;
@@ -304,7 +334,7 @@ describe('EastWood', function() {
       describe('streamNotifier', function() {
         it('should throw if given insufficient args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.streamNotifier();
             expect(false).to.be.ok;
@@ -353,7 +383,7 @@ describe('EastWood', function() {
         });
         it('should throw if given more args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.streamNotifier('aa', 1, 'bb', true, true, 2);
             expect(false).to.be.ok;
@@ -367,7 +397,7 @@ describe('EastWood', function() {
 
         it('should throw if given incorrect args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.streamNotifier(123, 456, 'lll', false, true);
             expect(false).to.be.ok;
@@ -376,6 +406,15 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('streamNotifier');
             expect(e.toString()).to.contain('Wrong argument at 0');
             expect(e.toString()).to.contain('given 123');
+          }
+          try {
+            c.streamNotifier('', 456, 'lll', false, true);
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('streamNotifier');
+            expect(e.toString()).to.contain('Wrong argument at 0');
+            expect(e.toString()).to.contain('hostname cannot be empty');
           }
           try {
             c.streamNotifier('host', 'abc', 'lll', false, true);
@@ -387,6 +426,15 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('given abc');
           }
           try {
+            c.streamNotifier('host', 0, 'lll', false, true);
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('streamNotifier');
+            expect(e.toString()).to.contain('Wrong argument at 1');
+            expect(e.toString()).to.contain('port number cannot be zero');
+          }
+          try {
             c.streamNotifier('host', 123, 456, false, true);
             expect(false).to.be.ok;
           } catch (e) {
@@ -394,6 +442,15 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('streamNotifier');
             expect(e.toString()).to.contain('Wrong argument at 2');
             expect(e.toString()).to.contain('given 456');
+          }
+          try {
+            c.streamNotifier('host', 123, '', false, true);
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('streamNotifier');
+            expect(e.toString()).to.contain('Wrong argument at 2');
+            expect(e.toString()).to.contain('tag cannot be empty');
           }
           try {
             c.streamNotifier('host', 123, 'ttt', 456, true);
@@ -416,7 +473,7 @@ describe('EastWood', function() {
         });
         it('should set if given correct args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure()
+          const c = ew.createSubscriber().configuration()
                         .streamNotifier('host-abc', 987, 'ttt', false, true)
                         .toObject();
           expect(c.notifier).to.be.ok;
@@ -431,7 +488,7 @@ describe('EastWood', function() {
       describe('duration', function() {
         it('should throw if given insufficient args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.duration();
             expect(false).to.be.ok;
@@ -444,7 +501,7 @@ describe('EastWood', function() {
         });
         it('should throw if given more args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.duration('00:00:01', 23);
             expect(false).to.be.ok;
@@ -457,7 +514,7 @@ describe('EastWood', function() {
         });
         it('should throw if given incorrect args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.duration(123);
             expect(false).to.be.ok;
@@ -476,10 +533,28 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('Wrong argument at 0');
             expect(e.toString()).to.contain('not-a-duration');
           }
+          try {
+            c.duration('00:00:00');
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('duration');
+            expect(e.toString()).to.contain('Wrong argument at 0');
+            expect(e.toString()).to.contain('duration must be longer than zero');
+          }
+          try {
+            c.duration('-00:00:01');
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('duration');
+            expect(e.toString()).to.contain('Wrong argument at 0');
+            expect(e.toString()).to.contain('duration must be longer than zero');
+          }
         });
         it('should set if given correct args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure()
+          const c = ew.createSubscriber().configuration()
                         .duration('00:01:23')
                         .toObject();
           expect(c.duration_ms).to.equal(83000);
@@ -489,7 +564,7 @@ describe('EastWood', function() {
       describe('userId', function() {
         it('should throw if given insufficient args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.userId();
             expect(false).to.be.ok;
@@ -502,7 +577,7 @@ describe('EastWood', function() {
         });
         it('should throw if given more args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.userId('u1', 22);
             expect(false).to.be.ok;
@@ -515,7 +590,7 @@ describe('EastWood', function() {
         });
         it('should throw if given incorrect args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.userId(123);
             expect(false).to.be.ok;
@@ -525,10 +600,19 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('Wrong argument at 0');
             expect(e.toString()).to.contain('given 123');
           }
+          try {
+            c.userId('');
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('userId');
+            expect(e.toString()).to.contain('Wrong argument at 0');
+            expect(e.toString()).to.contain('user id cannot be empty');
+          }
         });
         it('should set if given correct args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure()
+          const c = ew.createSubscriber().configuration()
                         .userId('user123')
                         .toObject();
           expect(c.userId).to.equal('user123');
@@ -538,7 +622,7 @@ describe('EastWood', function() {
       describe('streamUrl', function() {
         it('should throw if given insufficient args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.streamUrl();
             expect(false).to.be.ok;
@@ -551,7 +635,7 @@ describe('EastWood', function() {
         });
         it('should throw if given more args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.streamUrl('s1', 22);
             expect(false).to.be.ok;
@@ -564,7 +648,7 @@ describe('EastWood', function() {
         });
         it('should throw if given incorrect args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.streamUrl(123);
             expect(false).to.be.ok;
@@ -574,10 +658,19 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('Wrong argument at 0');
             expect(e.toString()).to.contain('given 123');
           }
+          try {
+            c.streamUrl('');
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('streamUrl');
+            expect(e.toString()).to.contain('Wrong argument at 0');
+            expect(e.toString()).to.contain('stream URL cannot be empty');
+          }
         });
         it('should set if given correct args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure()
+          const c = ew.createSubscriber().configuration()
                         .streamUrl('s123')
                         .toObject();
           expect(c.streamURL).to.equal('s123');
@@ -587,7 +680,7 @@ describe('EastWood', function() {
       describe('certCheck', function() {
         it('should throw if given insufficient args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.certCheck();
             expect(false).to.be.ok;
@@ -600,7 +693,7 @@ describe('EastWood', function() {
         });
         it('should throw if given more args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.certCheck(true, false);
             expect(false).to.be.ok;
@@ -613,7 +706,7 @@ describe('EastWood', function() {
         });
         it('should throw if given incorrect args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.certCheck(123);
             expect(false).to.be.ok;
@@ -626,11 +719,11 @@ describe('EastWood', function() {
         });
         it('should set if given correct args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          c = ew.createSubscriber().configure()
+          c = ew.createSubscriber().configuration()
                         .certCheck(true)
                         .toObject();
           expect(c.cert).to.equal(true);
-          c = ew.createSubscriber().configure()
+          c = ew.createSubscriber().configuration()
                         .certCheck(false)
                         .toObject();
           expect(c.cert).to.equal(false);
@@ -640,7 +733,7 @@ describe('EastWood', function() {
       describe('authSecret', function() {
         it('should throw if given insufficient args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.authSecret();
             expect(false).to.be.ok;
@@ -653,7 +746,7 @@ describe('EastWood', function() {
         });
         it('should throw if given more args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.authSecret('aaa', 'bbb');
             expect(false).to.be.ok;
@@ -666,7 +759,7 @@ describe('EastWood', function() {
         });
         it('should throw if given incorrect args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.authSecret(123);
             expect(false).to.be.ok;
@@ -679,7 +772,7 @@ describe('EastWood', function() {
         });
         it('should set if given correct args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure()
+          const c = ew.createSubscriber().configuration()
                         .authSecret('sec123')
                         .toObject();
           expect(c.secret).to.equal('sec123');
@@ -689,7 +782,7 @@ describe('EastWood', function() {
       describe('printFrameInfo', function() {
         it('should throw if given insufficient args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.printFrameInfo();
             expect(false).to.be.ok;
@@ -702,7 +795,7 @@ describe('EastWood', function() {
         });
         it('should throw if given more args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.printFrameInfo(false, true);
             expect(false).to.be.ok;
@@ -715,7 +808,7 @@ describe('EastWood', function() {
         });
         it('should throw if given incorrect args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.printFrameInfo('aaa');
             expect(false).to.be.ok;
@@ -728,11 +821,11 @@ describe('EastWood', function() {
         });
         it('should set if given correct args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          c = ew.createSubscriber().configure()
+          c = ew.createSubscriber().configuration()
                         .printFrameInfo(true)
                         .toObject();
           expect(c.frameInfo).to.equal(true);
-          c = ew.createSubscriber().configure()
+          c = ew.createSubscriber().configuration()
                         .printFrameInfo(false)
                         .toObject();
           expect(c.frameInfo).to.equal(false);
@@ -742,7 +835,7 @@ describe('EastWood', function() {
       describe('audioSink', function() {
         it('should throw if given insufficient args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.audioSink();
             expect(false).to.be.ok;
@@ -758,20 +851,12 @@ describe('EastWood', function() {
           } catch (e) {
             expect(e.toString()).to.contain('SubscriberConfig');
             expect(e.toString()).to.contain('audioSink');
-            expect(e.toString()).to.contain('Need sink param');
-          }
-          try {
-            c.audioSink(EastWood.AudioSink_FFMpeg);
-            expect(false).to.be.ok;
-          } catch (e) {
-            expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('audioSink');
-            expect(e.toString()).to.contain('Need sink param');
+            expect(e.toString()).to.contain('Need sink filename');
           }
         });
         it('should throw if given more args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.audioSink(EastWood.AudioSink_None, 'file123');
             expect(false).to.be.ok;
@@ -789,19 +874,10 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('Takes 2');
             expect(e.toString()).to.contain('given 3');
           }
-          try {
-            c.audioSink(EastWood.AudioSink_FFMpeg, 'filename', 123);
-            expect(false).to.be.ok;
-          } catch (e) {
-            expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('audioSink');
-            expect(e.toString()).to.contain('Takes 2');
-            expect(e.toString()).to.contain('given 3');
-          }
         });
         it('should throw if given incorrect args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.audioSink('aaa');
             expect(false).to.be.ok;
@@ -820,32 +896,35 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('Wrong argument at 0');
             expect(e.toString()).to.contain('given 999');
           }
+          try {
+            c.audioSink(EastWood.AudioSink_File, 123);
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('audioSink');
+            expect(e.toString()).to.contain('Wrong argument at 1');
+            expect(e.toString()).to.contain('given 123');
+          }
         });
         it('should set if given correct args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          c = ew.createSubscriber().configure()
+          c = ew.createSubscriber().configuration()
                         .audioSink(EastWood.AudioSink_None)
                         .toObject();
           expect(c.audio.sink).to.equal('none');
 
-          c = ew.createSubscriber().configure()
+          c = ew.createSubscriber().configuration()
                         .audioSink(EastWood.AudioSink_File, 'file/name.a')
                         .toObject();
           expect(c.audio.sink).to.equal('file');
-          expect(c.audio.param).to.equal('file/name.a');
-
-          c = ew.createSubscriber().configure()
-                        .audioSink(EastWood.AudioSink_FFMpeg, 'file/name.mp4')
-                        .toObject();
-          expect(c.audio.sink).to.equal('ffmpeg');
-          expect(c.audio.param).to.equal('file/name.mp4');
+          expect(c.audio.filename).to.equal('file/name.a');
         });
       });
 
       describe('videoSink', function() {
         it('should throw if given insufficient args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.videoSink();
             expect(false).to.be.ok;
@@ -861,20 +940,12 @@ describe('EastWood', function() {
           } catch (e) {
             expect(e.toString()).to.contain('SubscriberConfig');
             expect(e.toString()).to.contain('videoSink');
-            expect(e.toString()).to.contain('Need sink param');
-          }
-          try {
-            c.videoSink(EastWood.VideoSink_FFMpeg);
-            expect(false).to.be.ok;
-          } catch (e) {
-            expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('videoSink');
-            expect(e.toString()).to.contain('Need sink param');
+            expect(e.toString()).to.contain('Need sink filename');
           }
         });
         it('should throw if given more args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.videoSink(EastWood.VideoSink_None, 'file123');
             expect(false).to.be.ok;
@@ -892,19 +963,10 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('Takes 2');
             expect(e.toString()).to.contain('given 3');
           }
-          try {
-            c.videoSink(EastWood.VideoSink_FFMpeg, 'filename', 123);
-            expect(false).to.be.ok;
-          } catch (e) {
-            expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('videoSink');
-            expect(e.toString()).to.contain('Takes 2');
-            expect(e.toString()).to.contain('given 3');
-          }
         });
         it('should throw if given incorrect args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.videoSink('aaa');
             expect(false).to.be.ok;
@@ -923,32 +985,103 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('Wrong argument at 0');
             expect(e.toString()).to.contain('given 11');
           }
+          try {
+            c.videoSink(EastWood.VideoSink_File, 11);
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('videoSink');
+            expect(e.toString()).to.contain('Wrong argument at 1');
+            expect(e.toString()).to.contain('given 11');
+          }
         });
         it('should set if given correct args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          c = ew.createSubscriber().configure()
+          c = ew.createSubscriber().configuration()
                         .videoSink(EastWood.VideoSink_None)
                         .toObject();
           expect(c.video.sink).to.equal('none');
 
-          c = ew.createSubscriber().configure()
+          c = ew.createSubscriber().configuration()
                         .videoSink(EastWood.VideoSink_File, 'file/name.a')
                         .toObject();
           expect(c.video.sink).to.equal('file');
-          expect(c.video.param).to.equal('file/name.a');
+          expect(c.video.filename).to.equal('file/name.a');
+       });
+      });
 
-          c = ew.createSubscriber().configure()
-                        .videoSink(EastWood.VideoSink_FFMpeg, 'file/name.mp4')
+      describe('ffmpegSink', function() {
+        it('should throw if given insufficient args', function() {
+          const ew = new EastWood(testLogLevel, true, false);
+          const c = ew.createSubscriber().configuration();
+          try {
+            c.ffmpegSink();
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('ffmpegSink');
+            expect(e.toString()).to.contain('Needs 2');
+            expect(e.toString()).to.contain('given 0');
+          }
+          try {
+            c.ffmpegSink("abc");
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('ffmpegSink');
+            expect(e.toString()).to.contain('Needs 2');
+            expect(e.toString()).to.contain('given 1');
+          }
+        });
+        it('should throw if given more args', function() {
+          const ew = new EastWood(testLogLevel, true, false);
+          const c = ew.createSubscriber().configuration();
+          try {
+            c.ffmpegSink('a.mp4', 'some params', 'and-extra');
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('ffmpegSink');
+            expect(e.toString()).to.contain('Takes 2');
+            expect(e.toString()).to.contain('given 3');
+          }
+        });
+        it('should throw if given incorrect args', function() {
+          const ew = new EastWood(testLogLevel, true, false);
+          const c = ew.createSubscriber().configuration();
+          try {
+            c.ffmpegSink(123, 'aaa');
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('ffmpegSink');
+            expect(e.toString()).to.contain('Wrong argument at 0');
+            expect(e.toString()).to.contain('given 123');
+          }
+          try {
+            c.ffmpegSink('a.mp4', 11);
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('ffmpegSink');
+            expect(e.toString()).to.contain('Wrong argument at 1');
+            expect(e.toString()).to.contain('given 11');
+          }
+        });
+        it('should set if given correct args', function() {
+          const ew = new EastWood(testLogLevel, true, false);
+          c = ew.createSubscriber().configuration()
+                        .ffmpegSink('some/where/abc.mp4', '-param1=1 -param2=2')
                         .toObject();
-          expect(c.video.sink).to.equal('ffmpeg');
-          expect(c.video.param).to.equal('file/name.mp4');
+          expect(c.ffmpeg.output).to.equal('some/where/abc.mp4');
+          expect(c.ffmpeg.params).to.equal('-param1=1 -param2=2');
         });
       });
 
       describe('subscriptionErrorRetry', function() {
         it('should throw if given insufficient args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.subscriptionErrorRetry();
             expect(false).to.be.ok;
@@ -979,7 +1112,7 @@ describe('EastWood', function() {
         });
         it('should throw if given incorrect args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configure();
+          const c = ew.createSubscriber().configuration();
           try {
             c.subscriptionErrorRetry('aaa', 2, 3);
             expect(false).to.be.ok;
@@ -1007,10 +1140,19 @@ describe('EastWood', function() {
             expect(e.toString()).to.contain('Wrong argument at 2');
             expect(e.toString()).to.contain('given aaa');
           }
+          try {
+            c.subscriptionErrorRetry(1, 2, 0.9);
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('subscriptionErrorRetry');
+            expect(e.toString()).to.contain('Wrong argument at 2');
+            expect(e.toString()).to.contain('retry delay progression must be 1.0 or bigger');
+          }
         });
         it('should set if given correct args', function() {
           const ew = new EastWood(testLogLevel, true, false);
-          c = ew.createSubscriber().configure()
+          c = ew.createSubscriber().configuration()
                         .subscriptionErrorRetry(1, 2, 3)
                         .toObject();
           expect(c.retry.max).to.equal(1);
@@ -1018,6 +1160,126 @@ describe('EastWood', function() {
           expect(c.retry.progression).to.equal(3);
         });
       });
+
+      describe('Configuration integrity', function() {
+        it('should throw if none of bixby and allocator were given', function() {
+          const ew = new EastWood(testLogLevel, true, false);
+          const c = ew.createSubscriber().configuration()
+            // set other mandatory items
+            .streamNotifier('host', 123, 'tag', true, true).userId('uuu').duration('infinite');
+          try {
+            c.verify();
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('Need either Bixby endpoint or Allocator endpoint');
+          }
+        });
+        it('should throw if both bixby and allocator were given', function() {
+          const ew = new EastWood(testLogLevel, true, false);
+          const c = ew.createSubscriber().configuration()
+            // set other mandatory items
+            .streamNotifier('host', 123, 'tag', true, true).userId('uuu').duration('infinite')
+            // and conflicting items
+            .bixby('host1', 10)
+            .bixbyAllocator('host2', 20, 'locA');
+          try {
+            c.verify();
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('Bixby endpoint and Allocator endpoint are mutually exclusive');
+          }
+        });
+        it('should throw if none of notifier and stream url were given', function() {
+          const ew = new EastWood(testLogLevel, true, false);
+          const c = ew.createSubscriber().configuration()
+            // set other mandatory items
+            .bixby('host', 123).userId('uuu').duration('infinite');
+          try {
+            c.verify();
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('Need either Stream notifier endpoint or Stream URL');
+          }
+        });
+        it('should throw if both bixby and allocator were given', function() {
+          const ew = new EastWood(testLogLevel, true, false);
+          const c = ew.createSubscriber().configuration()
+            // set other mandatory items
+            .bixby('host1', 10).userId('uuu').duration('infinite')
+            // and conflicting items
+            .streamNotifier('host2', 123, 'tag', true, true)
+            .streamUrl('surl2');
+          try {
+            c.verify();
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('Stream notifier endpoint and Stream URL are mutually exclusive');
+          }
+        });
+        it('should throw if duration was not given', function() {
+          const ew = new EastWood(testLogLevel, true, false);
+          const c = ew.createSubscriber().configuration()
+            // set other mandatory items
+            .bixby('host1', 10).streamUrl('surl2').userId('uuu');
+console.log(c.toObject());
+
+          try {
+            c.verify();
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('Need duration');
+          }
+        });
+        it('should throw if user id was not given', function() {
+          const ew = new EastWood(testLogLevel, true, false);
+          const c = ew.createSubscriber().configuration()
+            // set other mandatory items
+            .bixby('host1', 10).streamUrl('surl2').duration('infinite');
+          try {
+            c.verify();
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('Need user id');
+          }
+        });
+      });
     });
+
+    describe('Subscriber', function() {
+      it('starts', function(done) {
+        const ew = new EastWood(EastWood.LogLevel_Debug, true, false);  // console-log, no-syslog
+        const sub = ew.createSubscriber()
+        sub.configuration()
+          .bixbyAllocator('media-allocator.eng.airtime.com', 443, 'at-west2')
+          .userId('art123')
+          .streamNotifier('stream-notifier.eng.signal.is', 3301, 'arttest', true, true)  // TLS, cert
+          .authSecret('hello@test-eng')
+          .audioSink(EastWood.AudioSink_None)
+          .videoSink(EastWood.VideoSink_None)
+          .duration('00:00:10');
+        console.log(sub.configuration().toObject());
+
+        sub.on("error", function(err) {
+          console.log("Error: " + err);
+        });
+
+//        sub.start();
+        sub.stop(function(result) {
+          console.log("Stopped: " + result);
+        });
+
+        setTimeout(()=>{
+          console.log("Finished");
+          done();
+        }, 15000);
+      })
+    });
+
   });
 });

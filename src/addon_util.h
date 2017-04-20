@@ -5,11 +5,18 @@
 
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <node.h>
+#include <uv.h>
+
+#include "mediacore/defs.h"
 
 namespace at {
 namespace node_addon {
+
+using PersistentFunctionCopyable = v8::Persistent<v8::Function, v8::CopyablePersistentTraits<v8::Function>>;
+using PersistentValueCopyable = v8::Persistent<v8::Value, v8::CopyablePersistentTraits<v8::Value>>;
 
 struct Util {
   /// Converts V8 String to std::string
@@ -39,6 +46,50 @@ struct Util {
 
   /// Converts V8 Bool to bool
   static bool ToBool(v8::Isolate* isolate, v8::Local<v8::Value> val);
+
+  // ToLocal family
+
+  /// Converts C++ bool to v8::Local<v8::Value>
+  static v8::Local<v8::Value> ToLocalValue(v8::Isolate* isolate, bool value);
+
+  /// Converts C++ int32_t to v8::Local<v8::Value>
+  static v8::Local<v8::Value> ToLocalValue(v8::Isolate* isolate, int32_t value);
+
+  /// Converts C++ uint32_t to v8::Local<v8::Value>
+  static v8::Local<v8::Value> ToLocalValue(v8::Isolate* isolate, uint32_t value);
+
+  /// Converts C++ int64_t to v8::Local<v8::Value> (trims to int32_t)
+  static v8::Local<v8::Value> ToLocalValue(v8::Isolate* isolate, int64_t value);
+
+  /// Converts C++ uint64_t to v8::Local<v8::Value> (trims to uint32_t)
+  static v8::Local<v8::Value> ToLocalValue(v8::Isolate* isolate, uint64_t value);
+
+  /// Converts C++ double to v8::Local<v8::Value>
+  static v8::Local<v8::Value> ToLocalValue(v8::Isolate* isolate, double value);
+
+  /// Converts C++ string to v8::Local<v8::Value>
+  static v8::Local<v8::Value> ToLocalValue(v8::Isolate* isolate, const std::string& value);
+
+  /// Converts C++ bool to v8::Local<v8::Boolean>
+  static v8::Local<v8::Boolean> ToLocalBoolean(v8::Isolate* isolate, bool value);
+
+  /// Converts C++ int32_t to v8::Local<v8::Integer>
+  static v8::Local<v8::Integer> ToLocalInteger(v8::Isolate* isolate, int32_t value);
+
+  /// Converts C++ uint32_t to v8::Local<v8::Integer>
+  static v8::Local<v8::Integer> ToLocalInteger(v8::Isolate* isolate, uint32_t value);
+
+  /// Converts C++ int64_t to v8::Local<v8::Integer> (trims to int32_t)
+  static v8::Local<v8::Integer> ToLocalInteger(v8::Isolate* isolate, int64_t value);
+
+  /// Converts C++ uint64_t to v8::Local<v8::Integer> (trims to uint32_t)
+  static v8::Local<v8::Integer> ToLocalInteger(v8::Isolate* isolate, uint64_t value);
+
+  /// Converts C++ double to v8::Local<v8::Number>
+  static v8::Local<v8::Number> ToLocalNumber(v8::Isolate* isolate, double value);
+
+  /// Converts C++ string to v8::Local<v8::String>
+  static v8::Local<v8::String> ToLocalString(v8::Isolate* isolate, const std::string& value);
 
   // InitClass family
 
@@ -98,6 +149,37 @@ struct Util {
           const v8::FunctionCallbackInfo<v8::Value>& args,
           size_t min_num_args, size_t max_num_args,
           CheckFunc&&... checks);
+};
+
+/**
+ * A helper class to call Node JS function from any thread
+ */
+class Notifier {
+ public:
+  /// Constructs. This needs to be used in Node JS thread. 
+  Notifier();
+
+  /// Sends a call. It can be called in any thread.
+  void Notify(v8::Local<v8::Function> listener, const std::vector<v8::Local<v8::Value>>& args);
+
+  /// Sends a call. It can be called in any thread.
+  void Notify(v8::Persistent<v8::Function> listener, const std::vector<v8::Local<v8::Value>>& args);
+
+  /// Sends a call. It can be called in any thread.
+  void Notify(PersistentFunctionCopyable listener, const std::vector<v8::Local<v8::Value>>& args);
+
+  ~Notifier();
+
+ private:
+  uv_async_t async_;
+  PersistentFunctionCopyable listener_;
+  Mutex funcs_mutex_;
+  using FuncList = std::vector<
+                    std::pair<PersistentFunctionCopyable, std::vector<PersistentValueCopyable>>
+                   >;
+  FuncList funcs_;
+
+  static void DoNotify(uv_async_t* handle);
 };
 
 }  // namespace node_addon
