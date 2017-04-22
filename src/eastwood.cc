@@ -83,12 +83,6 @@ EastWood::EastWood(LogLevel level, bool log_to_console, bool log_to_syslog, cons
     boost::property_tree::ptree log_props = LoadLogPropertiesFiles(log_props_file);
     at::InitLogging(log_to_console, log_to_syslog, log_props);
     SetLogLevel(level);
-
-// Seems uv_run needs to be called when there's something to process
-    // auto result = uv_run(uv_default_loop(), UV_RUN_DEFAULT);
-    // if (0 != result) {
-    //   Util::ThrowException(Exception::Error, "Failed to uv_run " + to_string(result));
-    // }
   }
 }
 

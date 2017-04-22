@@ -20,6 +20,8 @@ namespace ew {
 
 class EastWood : public node::ObjectWrap {
  public:
+
+// TODO(Art): combine a/v sink type
   enum AudioSinkType { AudioSink_None = 0, AudioSink_File = 1, AudioSink_Undefined = -1 };
   enum VideoSinkType { VideoSink_None = 0, VideoSink_File = 1, VideoSink_Undefined = -1 };
   enum LogLevel { LogLevel_Fatal = 0, LogLevel_Error = 1, LogLevel_Warning = 2, LogLevel_Info = 3, LogLevel_Debug = 4 };

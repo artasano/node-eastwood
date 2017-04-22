@@ -1166,7 +1166,8 @@ describe('EastWood', function() {
           const ew = new EastWood(testLogLevel, true, false);
           const c = ew.createSubscriber().configuration()
             // set other mandatory items
-            .streamNotifier('host', 123, 'tag', true, true).userId('uuu').duration('infinite');
+            .streamNotifier('host', 123, 'tag', true, true).userId('uuu').duration('infinite')
+            .audioSink(EastWood.AudioSink_None).videoSink(EastWood.VideoSink_None);
           try {
             c.verify();
             expect(false).to.be.ok;
@@ -1180,6 +1181,7 @@ describe('EastWood', function() {
           const c = ew.createSubscriber().configuration()
             // set other mandatory items
             .streamNotifier('host', 123, 'tag', true, true).userId('uuu').duration('infinite')
+            .audioSink(EastWood.AudioSink_None).videoSink(EastWood.VideoSink_None)
             // and conflicting items
             .bixby('host1', 10)
             .bixbyAllocator('host2', 20, 'locA');
@@ -1195,7 +1197,8 @@ describe('EastWood', function() {
           const ew = new EastWood(testLogLevel, true, false);
           const c = ew.createSubscriber().configuration()
             // set other mandatory items
-            .bixby('host', 123).userId('uuu').duration('infinite');
+            .bixby('host', 123).userId('uuu').duration('infinite')
+            .audioSink(EastWood.AudioSink_None).videoSink(EastWood.VideoSink_None);
           try {
             c.verify();
             expect(false).to.be.ok;
@@ -1209,6 +1212,7 @@ describe('EastWood', function() {
           const c = ew.createSubscriber().configuration()
             // set other mandatory items
             .bixby('host1', 10).userId('uuu').duration('infinite')
+            .audioSink(EastWood.AudioSink_None).videoSink(EastWood.VideoSink_None)
             // and conflicting items
             .streamNotifier('host2', 123, 'tag', true, true)
             .streamUrl('surl2');
@@ -1224,9 +1228,8 @@ describe('EastWood', function() {
           const ew = new EastWood(testLogLevel, true, false);
           const c = ew.createSubscriber().configuration()
             // set other mandatory items
-            .bixby('host1', 10).streamUrl('surl2').userId('uuu');
-console.log(c.toObject());
-
+            .bixby('host1', 10).streamUrl('surl2').userId('uuu')
+            .audioSink(EastWood.AudioSink_None).videoSink(EastWood.VideoSink_None);
           try {
             c.verify();
             expect(false).to.be.ok;
@@ -1239,13 +1242,43 @@ console.log(c.toObject());
           const ew = new EastWood(testLogLevel, true, false);
           const c = ew.createSubscriber().configuration()
             // set other mandatory items
-            .bixby('host1', 10).streamUrl('surl2').duration('infinite');
+            .bixby('host1', 10).streamUrl('surl2').duration('infinite')
+            .audioSink(EastWood.AudioSink_None).videoSink(EastWood.VideoSink_None);
           try {
             c.verify();
             expect(false).to.be.ok;
           } catch (e) {
             expect(e.toString()).to.contain('SubscriberConfig');
             expect(e.toString()).to.contain('Need user id');
+          }
+        });
+        it('should throw if no sink was given', function() {
+          const ew = new EastWood(testLogLevel, true, false);
+          const c = ew.createSubscriber().configuration()
+            // set other mandatory items
+            .bixby('host1', 10).streamUrl('surl2').duration('infinite').userId('aa');
+          try {
+            c.verify();
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('Need sink');
+          }
+        });
+        it('should throw if regular sink and ffmpeg sink were both given', function() {
+          const ew = new EastWood(testLogLevel, true, false);
+          const c = ew.createSubscriber().configuration()
+            // set other mandatory items
+            .bixby('host1', 10).streamUrl('surl2').duration('infinite').userId('aa')
+            // then conflicts
+            .audioSink(EastWood.AudioSink_None).videoSink(EastWood.VideoSink_None)
+            .ffmpegSink('z.mp4', '--some-param=123');
+          try {
+            c.verify();
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('Regular sink and FFMpeg sink are mutually exclusive');
           }
         });
       });
@@ -1272,11 +1305,12 @@ console.log(c.toObject());
 //        sub.start();
         sub.stop(function(result) {
           console.log("Stopped: " + result);
+          done();
         });
 
         setTimeout(()=>{
           console.log("Finished");
-          done();
+          // done();
         }, 15000);
       })
     });

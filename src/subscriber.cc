@@ -63,6 +63,9 @@ Subscriber::Subscriber(const FunctionCallbackInfo<Value>& args)
 
 Subscriber::~Subscriber() {
   config_.Reset();
+
+// TODO(Art): temp
+std::cout << "~Subscriber\n";
 }
 
 void Subscriber::Configuration(const FunctionCallbackInfo<Value>& args) {
@@ -425,8 +428,7 @@ void Subscriber::On(const FunctionCallbackInfo<Value>& args) {
   Subscriber* self = Unwrap<Subscriber>(args.Holder());
   assert(self);
 
-  auto event = Util::ToString(args[0]);
-  self->error_event_listeners_.emplace_back(args.GetIsolate(), Local<Function>::Cast(args[1]));
+  self->error_event_.AddListener(Local<Function>::Cast(args[1]));
 }
 
 void Subscriber::Start(const FunctionCallbackInfo<Value>& args) {
@@ -538,42 +540,12 @@ void Subscriber::NotifyError(const string& err) {
   } else {
     args.emplace_back(Exception::Error(Util::ToLocalString(err)));
   }
-  for (auto& lis : error_event_listeners_) {
-    notifier_.Notify(lis, args);
-  }
-}
-
-// TODO(Art): trial
-// to keep event_loop alive until the end. may want to start in Start()
-static at::Logger log2;
-class BlockByPromise {
-  explicit BlockByPromise(at::PromisePtr<bool> promise) : promise_(promise) {
-  }
- public:
-  static BlockByPromise* New(at::PromisePtr<bool> promise) {
-    return new BlockByPromise(promise);
-  }
-  void BlockUntilFuture() {
-
-AT_LOG_INFO(log2, "BlockByPromise: blocking");
-
-    promise_->future()->result();
-
-AT_LOG_INFO(log2, "BlockByPromise: unblocked");
-  }
- private:
-  at::PromisePtr<bool> promise_;
-};
-static void KeepLoopAlive(uv_work_t* req) {
-  auto blocker = reinterpret_cast<BlockByPromise*>(req->data);
-  blocker->BlockUntilFuture();
-  delete blocker;
-}
-static void AfterWork(uv_work_t* req, int status) {
-AT_LOG_INFO(log2, "After work");
+  error_event_.Emit(args);
 }
 
 void Subscriber::Stop(const FunctionCallbackInfo<Value>& args) {
+  v8::HandleScope scope(args.GetIsolate());
+
   if (!Util::CheckArgs("stop", args, 0, 1,
     [](const Local<Value> arg0, string& err_msg) { return arg0->IsFunction(); }
   )) return;
@@ -582,38 +554,28 @@ void Subscriber::Stop(const FunctionCallbackInfo<Value>& args) {
 
   AT_LOG_INFO(self->log_, "Stopping");
 
+  self->error_event_.Stop();
+
   auto isolate = args.GetIsolate();
   if (1 == args.Length()) {
-    self->stop_callback_.Reset(isolate, Local<Function>::Cast(args[0]));
+    self->stop_callback_.SetCallbackFn(Local<Function>::Cast(args[0]));
   } else {
-    self->stop_callback_.Reset(isolate, 
+    self->stop_callback_.SetCallbackFn(
                                Function::New(isolate->GetCurrentContext(),
                                    [](const FunctionCallbackInfo<Value>& args){}).ToLocalChecked());
   }
 
-// TODO(Art): trial
-uv_work_t work;
-auto promise = at::Promise<bool>::New();
-work.data = BlockByPromise::New(promise);
-uv_queue_work(uv_default_loop(), &work, KeepLoopAlive, AfterWork);
-// this blocks here uv_run(uv_default_loop(), UV_RUN_DEFAULT);
-
-
   if (!self->facade_) {
     // Stopped before Start.
     // calling on_ended listeners with error : that's the same as subscriber's behavior.
-    // vector<Local<Value>> args;
-    // args.emplace_back(Util::ToLocalValue(false));
-    // self->notifier_.Notify(self->stop_callback_, args);
-
-// TODO(Art): trial
-promise->Succeed(true);
-
+    vector<Local<Value>> args;
+    args.emplace_back(Util::ToLocalValue(false));
+    self->stop_callback_.Call(args);
     return;
   }
 
   self->facade_->Stop()->on_result([self](exception_ptr ex, bool result) {
-    // TODO(Art): uv_async_send
+    // TODO(Art): write
     // if (ex) {
     //   AT_LOG_ERROR(self->log_, "Stop callback with exception: " << ex);
     //   auto argc = 1;
@@ -646,9 +608,13 @@ bool Subscriber::SubscriberConfig::VerifyConfigIntegrity(const FunctionCallbackI
   if (at::Endpoint() != config_.notifier_endpoint && !config_.stream_url.empty()) {
     err += "Stream notifier endpoint and Stream URL are mutually exclusive\n";
   }
+  if (ffmpeg_output_.empty()
+   && ((video_sink_ == EastWood::VideoSink_Undefined) && (audio_sink_ == EastWood::AudioSink_Undefined))) {
+    err += "Need sink\n";
+  }
   if (!ffmpeg_output_.empty()
    && ((video_sink_ != EastWood::VideoSink_Undefined) || (audio_sink_ != EastWood::AudioSink_Undefined))) {
-    err += "Sink type mismatch\n";
+    err += "Regular sink and FFMpeg sink are mutually exclusive\n";
   }
   if (config_.duration == at::Duration()) {
     err += "Need duration\n";

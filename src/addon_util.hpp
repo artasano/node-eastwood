@@ -49,7 +49,6 @@ template <class... Rest>
 void SetUpClassProp(
             Local<Object> exports, Local<FunctionTemplate> tpl,
             const pair<string, FunctionCallback>& method, Rest&&... rest) {
-  auto isolate = exports->GetIsolate();
   NODE_SET_PROTOTYPE_METHOD(tpl, method.first.c_str(), method.second);
   SetUpClassProp(exports, tpl, forward<Rest>(rest)...);
 }
@@ -104,7 +103,6 @@ template <size_t N, class CheckFunc, class... RestOfCheckFunc>
 bool CheckArg(
         const string& context, const FunctionCallbackInfo<Value>& args,
         CheckFunc&& check, RestOfCheckFunc&&... rest) {
-  auto isolate = Isolate::GetCurrent();
 
   auto err_msg = ""s;
   if (!check(args[N], err_msg)) {
@@ -115,7 +113,7 @@ bool CheckArg(
            : err_msg));
     return false;
   }
-  if (args.Length() <= N + 1) return true;
+  if (static_cast<size_t>(args.Length()) <= N + 1) return true;
   return CheckArg<N+1>(context, args, forward<RestOfCheckFunc>(rest)...);
 }
 
@@ -123,18 +121,16 @@ bool CheckArg(
 
 template <class... CheckFunc> // CheckFunc: pair<bool, string>(const Local<Value>)
 bool Util::CheckArgs(const string& context, const FunctionCallbackInfo<Value>& args,
-  size_t min_num_args, size_t max_num_args,
-  CheckFunc&&... checks) {
-
-  auto isolate = Isolate::GetCurrent();
+                      size_t min_num_args, size_t max_num_args,
+                      CheckFunc&&... checks) {
 
   // Check the number of arguments passed.
-  if (args.Length() < min_num_args)  {
+  if (static_cast<size_t>(args.Length()) < min_num_args)  {
     ThrowException(args, Exception::TypeError,
         context + ": Needs " + to_string(min_num_args) + " args but given " + to_string(args.Length()));
     return false;
   }
-  if (max_num_args < args.Length()) {
+  if (max_num_args < static_cast<size_t>(args.Length())) {
     ThrowException(args, Exception::TypeError,
         context + ": Takes " + to_string(max_num_args) + " args but given " + to_string(args.Length()));
     return false;
@@ -147,8 +143,6 @@ bool Util::CheckArgs(const string& context, const FunctionCallbackInfo<Value>& a
 
 template <class T>
 bool Util::NewCppInstance(const FunctionCallbackInfo<Value>& args, T* obj) {
-  auto isolate = args.GetIsolate();
-
   if (args.IsConstructCall()) {
     // construct
     obj->Wrap(args.This());
@@ -159,7 +153,6 @@ bool Util::NewCppInstance(const FunctionCallbackInfo<Value>& args, T* obj) {
     return false;
   }
 }
-
 
 }  // namespace node_addon
 }  // namespace at

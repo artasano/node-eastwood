@@ -95,6 +95,7 @@ class Subscriber : public node::ObjectWrap {
      */
     static void PrintFrameInfo(const v8::FunctionCallbackInfo<v8::Value>& args);
 
+// TODO(Art): combine a/v sink
     /**
      * Sets regular audio sink (optional. default is null-sink)
      * Use FFMpegSink() to set up FFMpeg sinks. (these are mutually exclusive)
@@ -245,10 +246,9 @@ class Subscriber : public node::ObjectWrap {
 
   mutable at::Logger log_;
   v8::Persistent<v8::Object> config_;
-  std::vector<at::node_addon::PersistentFunctionCopyable> error_event_listeners_;
-  at::node_addon::PersistentFunctionCopyable stop_callback_;
+  at::node_addon::EventEmitter error_event_;
+  at::node_addon::CallbackInvoker stop_callback_;
   std::unique_ptr<at::eastwood::SubscriberFacade> facade_;
-  at::node_addon::Notifier notifier_;
 
   AT_ADDON_CLASS;
 };

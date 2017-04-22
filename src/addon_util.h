@@ -4,13 +4,16 @@
 #define AT_ADDON_UTIL_H_
 
 #include <string>
-#include <utility>
+#include <memory>
 #include <vector>
+#include <functional>
 
 #include <node.h>
 #include <uv.h>
 
 #include "mediacore/defs.h"
+#include "mediacore/async/promise.h"
+#include "mediacore/thread/thread_annotations.h"
 
 namespace at {
 namespace node_addon {
@@ -112,6 +115,8 @@ struct Util {
   /// Creates enum spec for InitClass. Use this version (instead of macro) if enum name has qualifier.
   static std::pair<std::string, EnumType> Enum(const std::string& name, EnumType val);
 
+// TODO(Art): constants string, integer, floating point
+
   /// Initializes a class
   template <class... Prop>  // Prototype(..) or Enum(..)
   static void InitClass(
@@ -151,29 +156,119 @@ struct Util {
           CheckFunc&&... checks);
 };
 
-
 /**
- * A helper class to call Node JS function from any thread
+ * A libuv worker class used by CallbackInvoker and EventEmitter (but generic enough for public use)
+ * The responsibility of this class is to hold uv_work in the uv event loop,
+ * so Node JS program does not exit until this class is destroyed.
  */
-class Notifier {
+class BlockingWorker {
+  BlockingWorker();
+  ~BlockingWorker();
+
  public:
-   /// Constructs. This needs to be used in Node JS thread.
-  Notifier();
+  /**
+   * Constructs. This needs to be called in Node JS thread. This ctor does not queue uv_work until StartWork().
+   * Should be created by this method and held by the pointer. Do not access after StopWork();
+   */
+  static BlockingWorker* New();
 
-  /// Sends a call. It can be called in any thread.
-  void Notify(PersistentFunctionCopyable listener, const std::vector<v8::Local<v8::Value>>& args);
+   /**
+    * This needs to be called in Node JS thread. This queues uv_work. If called again, this does nothing.
+    * @param after_fn: called when StopWork() is called.
+    */
+  void StartWork(std::function<void()> after_fn = std::function<void()>());
 
-  ~Notifier();
+  /**
+   * This finishes the uv work. It can be called in any thread. It deletes this object.
+   * If the user forgot to call StopWork(), Node JS process would keep running.
+   */
+  void StopWork();
 
  private:
-  uv_async_t async_;
-  Mutex funcs_mutex_;
-  using FuncList = std::vector<std::pair<PersistentFunctionCopyable, 
-                                         std::vector<PersistentValueCopyable>>
-                    >;
-  FuncList funcs_;
+  uv_work_t work_;
+  PromisePtr<bool> promise_;
+  bool queued_ = false;
+  std::function<void()> after_fn_;
+  void* payload_ = nullptr;
 
-  static void DoNotify(uv_async_t* handle);
+  static void KeepAliveUntilFuture(uv_work_t* work);
+  static void Finish(uv_work_t* work, int status);
+};
+
+/**
+ * A helper class to hold a Node JS callback function object and call it from any thread.
+ * This class holds uv_work in the uv event loop, so Node JS program does not exit until
+ * the callback is called (or this class is destroyed).
+ */
+class CallbackInvoker {
+ public:
+   /// Constructs. This needs to be used in Node JS thread. This ctor does not queue uv_work until callback func is set.
+  CallbackInvoker();
+
+   /// Constructs. This needs to be used in Node JS thread. This ctor queues uv_work immediately.
+  explicit CallbackInvoker(PersistentFunctionCopyable cb_func);
+  explicit CallbackInvoker(v8::Local<v8::Function> cb_func);
+
+  /// If callback function was set in the constructor, or previoud SetCallbackFn call, it'll be replaced.
+  void SetCallbackFn(PersistentFunctionCopyable cb_func);
+  void SetCallbackFn(v8::Local<v8::Function> cb_func);
+
+  /**
+   * Sends a call. It can be called in any thread.
+   * This removes uv_work from the event loop, so if no other pending task remains, the program ends.
+   * @note This can be called only once. If called twice or more, the later calls are ignored.
+   */
+  void Call(const std::vector<v8::Local<v8::Value>>& args);
+
+  /// Finishes the uv worker
+  void Stop();
+
+  ~CallbackInvoker();
+
+  /// utility function exposed
+  static void Invoke(PersistentFunctionCopyable fn, const vector<PersistentValueCopyable>& args);
+
+ private:
+  BlockingWorker* worker_ = nullptr;
+  PersistentFunctionCopyable cb_func_;
+  Mutex args_mutex_;
+  bool to_call_ AT_GUARDED_BY(args_mutex_) = false;
+  std::vector<PersistentValueCopyable> args_ AT_GUARDED_BY(args_mutex_);
+
+  void Finish();
+  void CleanUp();
+};
+
+
+/**
+ * A helper class to hold a Node JS callback function objects and call it from any thread.
+ * This class holds uv_work in the uv event loop, so Node JS program does not exit until this class is destroyed.
+ */
+class EventEmitter {
+ public:
+   /// Constructs. This needs to be used in Node JS thread. This ctor queues uv_work immediately.
+  EventEmitter();
+
+  /// Adds listener (there is no way to remove listener, for now)
+  void AddListener(PersistentFunctionCopyable cb_func);
+  void AddListener(v8::Local<v8::Function> cb_func);
+
+  /**
+   * Emits an event to all listeners. It can be called in any thread.
+   */
+  void Emit(const std::vector<v8::Local<v8::Value>>& args);
+
+  /// Finishes the uv worker
+  void Stop();
+
+  ~EventEmitter();
+
+ private:
+  BlockingWorker* worker_ = nullptr;
+  Mutex mutex_;
+  std::vector<PersistentFunctionCopyable> listeners_ AT_GUARDED_BY(mutex_);
+
+  static void EmitEvent(uv_async_t* handle);
 };
 
 }  // namespace node_addon

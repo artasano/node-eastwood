@@ -16,6 +16,7 @@ using std::vector;
 using std::function;
 
 using v8::Isolate;
+using v8::HandleScope;
 using v8::Local;
 using v8::Value;
 using v8::Boolean;
@@ -24,6 +25,7 @@ using v8::Uint32;
 using v8::Number;
 using v8::Integer;
 using v8::String;
+using v8::Object;
 using v8::Function;
 
 
@@ -176,61 +178,255 @@ Local<Object> Util::NewV8Instance(Persistent<Function>& constructor, const Funct
 
 // -------------------------------
 
-Notifier::Notifier() {
-  auto ret = uv_async_init(uv_default_loop(), &async_, DoNotify);
-  if (0 != ret) {
-    throw std::runtime_error("Notifier uv_async_init failed with " + to_string(ret));
-  }
-  async_.data = this;
+// BlockingWorker
+
+BlockingWorker::BlockingWorker()
+  : promise_(Promise<bool>::New()) {
+  work_.data = this;
 }
 
-void Notifier::Notify(PersistentFunctionCopyable listener, const vector<Local<Value>>& args) {
-  auto isolate = Isolate::GetCurrent();
-  { LockGuard guard(funcs_mutex_);
-    funcs_.emplace_back(make_pair(listener, vector<PersistentValueCopyable>()));
-    auto& persistent_args = funcs_.back().second;
-    persistent_args.reserve(args.size());
-    for (const auto& a : args) {
-      persistent_args.emplace_back(isolate, a);
-    }
-  }
-
-std::cout << "###### async_send pending " << async_.pending << " loop " << async_.loop << "\n";
-
-  auto ret = uv_async_send(&async_);
-  if (0 != ret) {
-    throw std::runtime_error("Notifier uv_async_send failed with " + to_string(ret));
-  }
+BlockingWorker* BlockingWorker::New() {
+  return new BlockingWorker();
 }
 
+void BlockingWorker::StartWork(std::function<void()> after_fn) {
+// TODO(Art): temp
+std::cout << "Starting worker " << this << " " << queued_ << "\n";
 
-Notifier::~Notifier() {
-  uv_close(reinterpret_cast<uv_handle_t*>(&async_), nullptr);
+  if (queued_) return;
+  after_fn_ = after_fn;
+  uv_queue_work(uv_default_loop(), &work_, KeepAliveUntilFuture, Finish);
+  queued_ = true;
+
+// TODO(Art): temp
+std::cout << "Queued " << this << "\n";
 }
 
-void Notifier::DoNotify(uv_async_t* handle) {
+void BlockingWorker::StopWork() {
+// TODO(Art): temp
+std::cout << "Stopping worker " << this << "\n";
 
-std::cout << "###### DoNotify\n";
+  // unblock the work
+  promise_->Succeed(true);
+}
 
-  auto self = static_cast<Notifier*>(handle->data);
+void BlockingWorker::Finish(uv_work_t* work, int status) {
+  auto self = reinterpret_cast<BlockingWorker*>(work->data);
   assert(self);
 
+// TODO(Art): temp
+std::cout << "Worker Finish " << self << "\n";
+
+  if (self->after_fn_) {
+    self->after_fn_();
+  }
+  delete self; 
+}
+
+BlockingWorker::~BlockingWorker() {
+}
+
+void BlockingWorker::KeepAliveUntilFuture(uv_work_t* work) {
+  auto self = reinterpret_cast<BlockingWorker*>(work->data);
+  assert(self);
+  // blocks the work
+  self->promise_->future()->result();
+
+// TODO(Art): temp
+std::cout << "Worker Unblocked " << self << "\n";
+}
+
+// CallbackInvoker
+
+CallbackInvoker::CallbackInvoker()
+  : worker_(BlockingWorker::New()) {
+}
+
+CallbackInvoker::CallbackInvoker(PersistentFunctionCopyable cb_func) {
+  SetCallbackFn(cb_func);
+}
+
+CallbackInvoker::CallbackInvoker(Local<Function> cb_func) {
+  SetCallbackFn(cb_func);
+}
+
+void CallbackInvoker::SetCallbackFn(PersistentFunctionCopyable cb_func) AT_EXCLUDES(args_mutex_) {
+// TODO(Art): temp
+std::cout << "CallbackInvoker SetCallback\n";
+
+  LockGuard guard(args_mutex_);
+  cb_func_.Reset(Isolate::GetCurrent(), cb_func);
+  worker_->StartWork([this](){ Finish(); });
+}
+
+void CallbackInvoker::SetCallbackFn(v8::Local<v8::Function> cb_func) {
+  SetCallbackFn(PersistentFunctionCopyable(Isolate::GetCurrent(), cb_func));
+}
+
+void CallbackInvoker::Call(const std::vector<v8::Local<v8::Value>>& args) AT_EXCLUDES(args_mutex_) {
+// TODO(Art): temp
+std::cout << "CallbackInvoker Call\n";
+
+  LockGuard guard(args_mutex_);
+  if (to_call_) {
+    // already done
+    return;
+  }
+  to_call_ = true;
+
   auto isolate = Isolate::GetCurrent();
-  auto context = isolate->GetCurrentContext();
-  
-  FuncList func_list;
-  { LockGuard guard(self->funcs_mutex_);
-    func_list.swap(self->funcs_);
+
+  args_.reserve(args.size());
+  for (const auto& a : args) {
+    args_.emplace_back(isolate, a);
   }
-  for (const auto& func_args : func_list) {
-    const auto& persistent_args = func_args.second;
-    int argc = persistent_args.size();
-    vector<Local<Value>> args;
-    for (auto const& a : persistent_args) {
-      args.emplace_back(a.Get(isolate));
-    }
-    func_args.first.Get(isolate)->Call(context, Null(isolate), argc, args.data()).IsEmpty();
+
+  // unblock the worker
+  worker_->StopWork();
+  worker_ = nullptr;  // it suicides
+}
+
+void CallbackInvoker::Stop() {
+  LockGuard guard(args_mutex_);
+  if (to_call_) {
+    // race. will stop after the call
+    return;
   }
+  if (worker_) {
+    worker_->StopWork();
+    worker_ = nullptr;  // it suicides
+  }
+}
+
+CallbackInvoker::~CallbackInvoker() {
+// TODO(Art): temp
+std::cout << "~CallbackInvoker\n";
+  if (worker_) {
+    worker_->StopWork();
+    worker_ = nullptr;  // it suicides
+  }
+}
+
+void CallbackInvoker::Finish() {
+  LockGuard guard(args_mutex_);
+  if (to_call_) {
+
+// TODO(Art): temp
+std::cout << "CallbackInvoker Invoking in JS thread\n";
+
+    Invoke(cb_func_, args_);
+  }
+  CleanUp();
+}
+
+void CallbackInvoker::Invoke(PersistentFunctionCopyable fn, const vector<PersistentValueCopyable>& args) {
+  auto isolate = Isolate::GetCurrent();
+  HandleScope scope(isolate);
+
+  vector<Local<Value>> call_args;
+  call_args.reserve(args.size());
+  for (const auto& a : args) {
+    call_args.emplace_back(a.Get(isolate));
+  }
+  // node::MakeCallback(isolate, Object::New(isolate), 
+  //                    fn.Get(isolate), static_cast<int>(call_args.size()), call_args.data());
+
+  fn.Get(isolate)->Call(isolate->GetCurrentContext()->Global(), static_cast<int>(call_args.size()), call_args.data());
+}
+
+void CallbackInvoker::CleanUp() {
+  cb_func_.Reset();
+  for (auto& a : args_) {
+    a.Reset();
+  }
+  args_.clear();
+}
+
+// EventEmitter
+
+EventEmitter::EventEmitter()
+  : worker_(BlockingWorker::New()) {
+
+// TODO(Art): temp
+std::cout << "Emitter starting worker\n";
+  worker_->StartWork();
+ }
+
+void EventEmitter::AddListener(PersistentFunctionCopyable cb_func) {
+  LockGuard guard(mutex_);
+  listeners_.emplace_back(cb_func);
+
+// TODO(Art): temp
+std::cout << "Emitter listener added\n";
+}
+
+void EventEmitter::AddListener(v8::Local<v8::Function> cb_func) {
+  AddListener(PersistentFunctionCopyable(Isolate::GetCurrent(), cb_func));
+}
+
+void EventEmitter::Stop() {
+  worker_->StopWork();
+  worker_ = nullptr;  // it suicides
+}
+
+EventEmitter::~EventEmitter() {
+// TODO(Art): temp
+std::cout << "~EventEmitter\n";
+  if (worker_) {
+    worker_->StopWork();
+  }
+  for (auto& lis : listeners_) {
+    lis.Reset();
+  }
+}
+
+namespace {
+// payload data
+struct EventEmission {
+  std::vector<PersistentFunctionCopyable> listeners;
+  std::vector<PersistentValueCopyable> args;
+  uv_async_t async;
+};
+}  // anonymous namespace
+
+void EventEmitter::Emit(const std::vector<v8::Local<v8::Value>>& args) {
+// TODO(Art): temp
+std::cout << "Emitting\n";
+
+  auto e = new EventEmission;
+  { LockGuard guard(mutex_);
+    e->listeners = listeners_;
+  }
+  auto isolate = Isolate::GetCurrent();
+  e->args.reserve(args.size());
+  for (const auto& a : args) {
+    e->args.emplace_back(isolate, a);
+  }
+  uv_async_init(uv_default_loop(), &e->async, EmitEvent);
+  e->async.data = e;
+  auto r = uv_async_send(&e->async);
+  if (0 != r) {
+    // what to do?
+  }
+
+// TODO(Art): temp
+std::cout << "Emitter async_send " << r << "\n";
+}
+
+void EventEmitter::EmitEvent(uv_async_t* handle) {
+// TODO(Art): temp
+std::cout << "Emitter EmitEvent\n";
+
+  auto e = static_cast<EventEmission*>(handle->data);
+  assert(e);
+
+  for (auto& lis : e->listeners) {
+    CallbackInvoker::Invoke(lis, e->args);
+  }
+
+// TODO(Art): listener.Reset()
+
+  delete e;
 }
 
 }  // namespace node_addon
