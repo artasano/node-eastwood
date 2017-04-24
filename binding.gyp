@@ -4,9 +4,9 @@
      "target_name": "eastwood_addon",
      "sources": [
        "src/eastwood_addon.cc",
-       "src/addon_util.cc",
        "src/eastwood.cc",
-       "src/subscriber.cc"
+       "src/subscriber.cc",
+       "src/util/addon_util.cc"
      ],
 
       # "target_name": "rainfall",
@@ -97,7 +97,7 @@
       #   '-lpthread',
       #   '-luv',
       #   # '/opt/git/libuv/.libs/libuv.a',  # for debug
-      #   # relative path from build/ directory
+        # relative path from build/ directory
         '../../build/osx-x86_64-release/mediacore/mediacore/libmediacore.a',
         '../../build/osx-x86_64-release/carmel/carmel/libcarmel.a',
         '../../build/osx-x86_64-release/carmel/carmel/libbixbyproto.a',
@@ -217,7 +217,7 @@
   
       "include_dirs": [
       #   "src",
-      #   # relative path from the project top directory
+        # relative path from the project top directory
         "../at-deps/mediacore",
         "../at-deps/libtecate",
         "../at-deps/carmel/include",

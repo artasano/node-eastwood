@@ -5,11 +5,9 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 
-#include <uv.h>
-
 #include "eastwood.h"
 #include "subscriber.h"
-#include "addon_util.h"
+#include "util/addon_util.h"
 
 namespace ew {
 
@@ -36,7 +34,7 @@ using namespace std;
 using namespace string_literals;
 using namespace chrono_literals;
 
-using at::node_addon::Util;
+using namespace at::node_addon;
 
 Persistent<Function> EastWood::constructor;
 at::Ptr<at::EventLoop> EastWood::event_loop;
@@ -116,19 +114,19 @@ string EastWood::VideoSinkString(VideoSinkType sink) {
 }
 
 void EastWood::Init(Local<Object> exports) {
-  Util::InitClass(exports, "EastWood", New, constructor,
-          Util::Prototype("createSubscriber", CreateSubscriber),
+  InitClass(exports, "EastWood", New, constructor,
+    AT_ADDON_PROTOTYPE_METHOD(createSubscriber),
 
-          AT_ADDON_CLASS_ENUM(LogLevel_Fatal),
-          AT_ADDON_CLASS_ENUM(LogLevel_Error),
-          AT_ADDON_CLASS_ENUM(LogLevel_Warning),
-          AT_ADDON_CLASS_ENUM(LogLevel_Info),
-          AT_ADDON_CLASS_ENUM(LogLevel_Debug),
+    AT_ADDON_CLASS_CONSTANT(LogLevel_Fatal),
+    AT_ADDON_CLASS_CONSTANT(LogLevel_Error),
+    AT_ADDON_CLASS_CONSTANT(LogLevel_Warning),
+    AT_ADDON_CLASS_CONSTANT(LogLevel_Info),
+    AT_ADDON_CLASS_CONSTANT(LogLevel_Debug),
 
-          AT_ADDON_CLASS_ENUM(AudioSink_None),
-          AT_ADDON_CLASS_ENUM(AudioSink_File),
-          AT_ADDON_CLASS_ENUM(VideoSink_None),
-          AT_ADDON_CLASS_ENUM(VideoSink_File)
+    AT_ADDON_CLASS_CONSTANT(AudioSink_None),
+    AT_ADDON_CLASS_CONSTANT(AudioSink_File),
+    AT_ADDON_CLASS_CONSTANT(VideoSink_None),
+    AT_ADDON_CLASS_CONSTANT(VideoSink_File)
   );
 
   Subscriber::Init(exports);
@@ -136,10 +134,11 @@ void EastWood::Init(Local<Object> exports) {
 
 void EastWood::New(const FunctionCallbackInfo<Value>& args) {
   auto log_level = LogLevel_Info;
-  if (!Util::CheckArgs("EastWood", args, 3, 4,
+// TODO(Art): trial. add overload taking context, if auto context is not enough
+  if (!CheckArgs("EastWood", args, 3, 4,
       [&log_level](Local<Value> arg0, string& err_msg) {
-        if (!Util::IsV8EnumType(arg0)) return false;
-        log_level = static_cast<LogLevel>(Util::ToEnumType(arg0));
+        if (!arg0->IsNumber()) return false;
+        log_level = static_cast<LogLevel>(ToInt32(arg0));
         if (log_level < LogLevel_Fatal || LogLevel_Debug < log_level) {
           err_msg = "Incorrect log level value " + to_string(log_level);
           return false;
@@ -150,14 +149,14 @@ void EastWood::New(const FunctionCallbackInfo<Value>& args) {
       [](Local<Value> arg2, string& err_msg) { return arg2->IsBoolean(); },
       [](Local<Value> arg3, string& err_msg) { return arg3->IsString(); })) return;
 
-  auto log_to_console = Util::ToBool(args[1]);
-  auto log_to_syslog = Util::ToBool(args[2]);
-  auto log_props_file = ((3 < args.Length()) ? Util::ToString(args[3]) : ""s);
-  Util::NewCppInstance<EastWood>(args, new EastWood(log_level, log_to_console, log_to_syslog, log_props_file));
+  auto log_to_console = ToBool(args[1]);
+  auto log_to_syslog = ToBool(args[2]);
+  auto log_props_file = ((3 < args.Length()) ? ToString(args[3]) : ""s);
+  NewCppInstance<EastWood>(args, new EastWood(log_level, log_to_console, log_to_syslog, log_props_file));
 }
 
-void EastWood::CreateSubscriber(const FunctionCallbackInfo<Value>& args) {
-  if (!Util::CheckArgs("createSubscriber", args, 0, 0)) return;
+void EastWood::createSubscriber(const FunctionCallbackInfo<Value>& args) {
+  if (!CheckArgs("createSubscriber", args, 0, 0)) return;
 
   args.GetReturnValue().Set(Subscriber::NewInstance(args));
 }

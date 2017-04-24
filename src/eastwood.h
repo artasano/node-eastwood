@@ -6,14 +6,12 @@
 #include <node.h>
 #include <node_object_wrap.h>
 
-#include <iostream>
 #include <string>
-#include <vector>
+#include "util/addon_util.h"
 #include "mediacore/defs.h"
 #include "tecate/defs.h"
 #include "mediacore/async/eventloop.h"
 #include "mediacore/base/logging.h"
-#include "addon_util.h"
 
 
 namespace ew {
@@ -44,7 +42,7 @@ class EastWood : public node::ObjectWrap {
    *  Subscriber createSubscriber();
    * @param init value
    */
-  static void CreateSubscriber(const v8::FunctionCallbackInfo<v8::Value>& args);
+  static void createSubscriber(const v8::FunctionCallbackInfo<v8::Value>& args);
 
   mutable at::Logger log_;
 

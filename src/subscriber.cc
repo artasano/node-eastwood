@@ -2,16 +2,12 @@
 
 #include <algorithm>
 #include <utility>
-#include <iostream>
-#include <typeinfo>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 
-#include <uv.h>
-
 #include "subscriber.h"
-#include "addon_util.h"
+#include "util/addon_util.h"
 
 #include "mediacore/base/exception.h"
 #include "eastwood/common/time.h"
@@ -47,7 +43,7 @@ using namespace std;
 using namespace string_literals;
 using namespace chrono_literals;
 
-using at::node_addon::Util;
+using namespace at::node_addon;
 
 using at::eastwood::SubscriberFacade;
 
@@ -68,22 +64,22 @@ Subscriber::~Subscriber() {
 std::cout << "~Subscriber\n";
 }
 
-void Subscriber::Configuration(const FunctionCallbackInfo<Value>& args) {
+void Subscriber::configuration(const FunctionCallbackInfo<Value>& args) {
   auto isolate = args.GetIsolate();
-  if (!Util::CheckArgs("configuration", args, 0, 0)) return;
+  if (!CheckArgs("configuration", args, 0, 0)) return;
   Subscriber* self = Unwrap<Subscriber>(args.Holder());
   assert(self);
   args.GetReturnValue().Set(self->config_.Get(isolate));
 }
 
 
-void Subscriber::SubscriberConfig::Bixby(const FunctionCallbackInfo<Value>& args) {
+void Subscriber::SubscriberConfig::bixby(const FunctionCallbackInfo<Value>& args) {
   auto host = ""s;
   auto port = 0u;
-  if (!Util::CheckArgs("bixby", args, 2, 2,
+  if (!CheckArgs("bixby", args, 2, 2,
     [&host](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
-      host = Util::ToString(arg0);
+      host = ToString(arg0);
       if (host.empty()) {
         err_msg = "hostname cannot be empty";
         return false;
@@ -92,7 +88,7 @@ void Subscriber::SubscriberConfig::Bixby(const FunctionCallbackInfo<Value>& args
     },
     [&port](const Local<Value> arg1, string& err_msg) {
       if (!arg1->IsUint32()) return false;
-      port = Util::ToUint32(arg1);
+      port = ToUint32(arg1);
       if (0 == port) {
         err_msg = "port number cannot be zero";
         return false;
@@ -106,14 +102,14 @@ void Subscriber::SubscriberConfig::Bixby(const FunctionCallbackInfo<Value>& args
   args.GetReturnValue().Set(args.Holder());
 }
 
-void Subscriber::SubscriberConfig::BixbyAllocator(const FunctionCallbackInfo<Value>& args) {
+void Subscriber::SubscriberConfig::bixbyAllocator(const FunctionCallbackInfo<Value>& args) {
   auto host = ""s;
   auto port = 0u;
   auto loc = ""s;
-  if (!Util::CheckArgs("bixbyAllocator", args, 3, 3,
+  if (!CheckArgs("bixbyAllocator", args, 3, 3,
     [&host](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
-      host = Util::ToString(arg0);
+      host = ToString(arg0);
       if (host.empty()) {
         err_msg = "hostname cannot be empty";
         return false;
@@ -122,7 +118,7 @@ void Subscriber::SubscriberConfig::BixbyAllocator(const FunctionCallbackInfo<Val
     },
     [&port](const Local<Value> arg1, string& err_msg) {
       if (!arg1->IsUint32()) return false;
-      port = Util::ToUint32( arg1);
+      port = ToUint32( arg1);
       if (0 == port) {
         err_msg = "port number cannot be zero";
         return false;
@@ -131,7 +127,7 @@ void Subscriber::SubscriberConfig::BixbyAllocator(const FunctionCallbackInfo<Val
     },
     [&loc](const Local<Value> arg2, string& err_msg) {
       if (!arg2->IsString()) return false;
-      loc = Util::ToString(arg2);
+      loc = ToString(arg2);
       if (loc.empty()) {
         err_msg = "location cannot be empty";
         return false;
@@ -146,14 +142,14 @@ void Subscriber::SubscriberConfig::BixbyAllocator(const FunctionCallbackInfo<Val
   args.GetReturnValue().Set(args.Holder());
 }
 
-void Subscriber::SubscriberConfig::StreamNotifier(const FunctionCallbackInfo<Value>& args) {
+void Subscriber::SubscriberConfig::streamNotifier(const FunctionCallbackInfo<Value>& args) {
   auto host = ""s;
   auto port = 0u;
   auto tag = ""s;
-  if (!Util::CheckArgs("streamNotifier", args, 5, 5,
+  if (!CheckArgs("streamNotifier", args, 5, 5,
     [&host](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
-      host = Util::ToString(arg0);
+      host = ToString(arg0);
       if (host.empty()) {
         err_msg = "hostname cannot be empty";
         return false;
@@ -162,7 +158,7 @@ void Subscriber::SubscriberConfig::StreamNotifier(const FunctionCallbackInfo<Val
     },
     [&port](const Local<Value> arg1, string& err_msg) {
       if (!arg1->IsUint32()) return false;
-      port = Util::ToUint32(arg1);
+      port = ToUint32(arg1);
       if (0 == port) {
         err_msg = "port number cannot be zero";
         return false;
@@ -171,7 +167,7 @@ void Subscriber::SubscriberConfig::StreamNotifier(const FunctionCallbackInfo<Val
     },
     [&tag](const Local<Value> arg2, string& err_msg) {
       if (!arg2->IsString()) return false;
-      tag = Util::ToString(arg2);
+      tag = ToString(arg2);
       if (tag.empty()) {
         err_msg = "tag cannot be empty";
         return false;
@@ -185,18 +181,18 @@ void Subscriber::SubscriberConfig::StreamNotifier(const FunctionCallbackInfo<Val
   assert(self);
   self->config_.notifier_endpoint = at::Endpoint(host, port);
   self->config_.tag = tag;
-  self->config_.use_tls_for_notifier = Util::ToBool(args[3]);
-  self->config_.no_notifier_cert_check = !Util::ToBool(args[4]);
+  self->config_.use_tls_for_notifier = ToBool(args[3]);
+  self->config_.no_notifier_cert_check = !ToBool(args[4]);
   args.GetReturnValue().Set(args.Holder());
 }
 
-void Subscriber::SubscriberConfig::Duration(const FunctionCallbackInfo<Value>& args) {
+void Subscriber::SubscriberConfig::duration(const FunctionCallbackInfo<Value>& args) {
   at::Duration dur = 0s;
-  if (!Util::CheckArgs("duration", args, 1, 1,
+  if (!CheckArgs("duration", args, 1, 1,
     [&dur](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
       try {
-        dur = at::eastwood::DurationFromString(Util::ToString(arg0));
+        dur = at::eastwood::DurationFromString(ToString(arg0));
       } catch (const exception& ex) {
         return false;
       }
@@ -213,12 +209,12 @@ void Subscriber::SubscriberConfig::Duration(const FunctionCallbackInfo<Value>& a
   args.GetReturnValue().Set(args.Holder());
 }
 
-void Subscriber::SubscriberConfig::UserId(const FunctionCallbackInfo<Value>& args) {
+void Subscriber::SubscriberConfig::userId(const FunctionCallbackInfo<Value>& args) {
   auto uid = ""s;
-  if (!Util::CheckArgs("userId", args, 1, 1,
+  if (!CheckArgs("userId", args, 1, 1,
     [&uid](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
-      uid = Util::ToString(arg0);
+      uid = ToString(arg0);
       if (uid.empty()) {
         err_msg = "user id cannot be empty";
         return false;
@@ -232,12 +228,12 @@ void Subscriber::SubscriberConfig::UserId(const FunctionCallbackInfo<Value>& arg
   args.GetReturnValue().Set(args.Holder());
 }
 
-void Subscriber::SubscriberConfig::StreamUrl(const FunctionCallbackInfo<Value>& args) {
+void Subscriber::SubscriberConfig::streamUrl(const FunctionCallbackInfo<Value>& args) {
   auto url = ""s;
-  if (!Util::CheckArgs("streamUrl", args, 1, 1,
+  if (!CheckArgs("streamUrl", args, 1, 1,
     [&url](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
-      url = Util::ToString(arg0);
+      url = ToString(arg0);
       if (url.empty()) {
         err_msg = "stream URL cannot be empty";
         return false;
@@ -251,45 +247,45 @@ void Subscriber::SubscriberConfig::StreamUrl(const FunctionCallbackInfo<Value>& 
   args.GetReturnValue().Set(args.Holder());
 }
 
-void Subscriber::SubscriberConfig::CertCheck(const FunctionCallbackInfo<Value>& args) {
-  if (!Util::CheckArgs("certCheck", args, 1, 1,
+void Subscriber::SubscriberConfig::certCheck(const FunctionCallbackInfo<Value>& args) {
+  if (!CheckArgs("certCheck", args, 1, 1,
     [](const Local<Value> arg0, string& err_msg) { return arg0->IsBoolean(); })) return;
 
   SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
   assert(self);
-  self->config_.no_cert_check = !Util::ToBool(args[0]);
+  self->config_.no_cert_check = !ToBool(args[0]);
   args.GetReturnValue().Set(args.Holder());
 }
 
-void Subscriber::SubscriberConfig::AuthSecret(const FunctionCallbackInfo<Value>& args) {
+void Subscriber::SubscriberConfig::authSecret(const FunctionCallbackInfo<Value>& args) {
 
-  if (!Util::CheckArgs("authSecret", args, 1, 1,
+  if (!CheckArgs("authSecret", args, 1, 1,
     [](const Local<Value> arg0, string& err_msg) { return arg0->IsString(); })) return;
 
   SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
   assert(self);
-  self->config_.auth_secret = Util::ToString(args[0]);
+  self->config_.auth_secret = ToString(args[0]);
   args.GetReturnValue().Set(args.Holder());
 }
 
-void Subscriber::SubscriberConfig::PrintFrameInfo(const FunctionCallbackInfo<Value>& args) {
+void Subscriber::SubscriberConfig::printFrameInfo(const FunctionCallbackInfo<Value>& args) {
 
-  if (!Util::CheckArgs("printFrameInfo", args, 1, 1,
+  if (!CheckArgs("printFrameInfo", args, 1, 1,
     [](const Local<Value> arg0, string& err_msg) { return arg0->IsBoolean(); })) return;
 
   SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
   assert(self);
-  self->config_.print_frame_info = Util::ToBool(args[0]);
+  self->config_.print_frame_info = ToBool(args[0]);
   args.GetReturnValue().Set(args.Holder());
 }
 
-void Subscriber::SubscriberConfig::AudioSink(const FunctionCallbackInfo<Value>& args) {
+void Subscriber::SubscriberConfig::audioSink(const FunctionCallbackInfo<Value>& args) {
   auto sink = EastWood::AudioSink_None;
   auto filename = ""s;
-  if (!Util::CheckArgs("audioSink", args, 1, 2,
+  if (!CheckArgs("audioSink", args, 1, 2,
         [&args, &sink](const Local<Value> arg0, string& err_msg) {
-          if (!Util::IsV8EnumType(arg0)) return false;
-          sink = static_cast<EastWood::AudioSinkType>(Util::ToEnumType(arg0));
+          if (!arg0->IsInt32()) return false;
+          sink = static_cast<EastWood::AudioSinkType>(ToInt32(arg0));
           if (sink == EastWood::AudioSink_File) {
             if (2 == args.Length()) return true;
             err_msg = "Need sink filename";
@@ -304,7 +300,7 @@ void Subscriber::SubscriberConfig::AudioSink(const FunctionCallbackInfo<Value>& 
         },
         [&filename](const Local<Value> arg1, string& err_msg) {
           if (!arg1->IsString()) return false;
-          filename = Util::ToString(arg1);
+          filename = ToString(arg1);
           if (filename.empty()) {
             err_msg = "Sink filename cannot be empty";
             return false;
@@ -321,13 +317,13 @@ void Subscriber::SubscriberConfig::AudioSink(const FunctionCallbackInfo<Value>& 
   args.GetReturnValue().Set(args.Holder());
 }
 
-void Subscriber::SubscriberConfig::VideoSink(const FunctionCallbackInfo<Value>& args) {
+void Subscriber::SubscriberConfig::videoSink(const FunctionCallbackInfo<Value>& args) {
   auto sink = EastWood::VideoSink_None;
   auto filename = ""s;
-  if (!Util::CheckArgs("videoSink", args, 1, 2,
+  if (!CheckArgs("videoSink", args, 1, 2,
         [&args, &sink](const Local<Value> arg0, string& err_msg) {
-          if (!Util::IsV8EnumType(arg0)) return false;
-          sink = static_cast<EastWood::VideoSinkType>(Util::ToEnumType(arg0));
+          if (!arg0->IsInt32()) return false;
+          sink = static_cast<EastWood::VideoSinkType>(ToInt32(arg0));
           if (sink == EastWood::VideoSink_File) {
             if (2 == args.Length()) return true;
             err_msg = "Need sink filename";
@@ -342,7 +338,7 @@ void Subscriber::SubscriberConfig::VideoSink(const FunctionCallbackInfo<Value>& 
         },
         [&filename](const Local<Value> arg1, string& err_msg) {
           if (!arg1->IsString()) return false;
-          filename = Util::ToString(arg1);
+          filename = ToString(arg1);
           if (filename.empty()) {
             err_msg = "Sink filename cannot be empty";
             return false;
@@ -356,19 +352,19 @@ void Subscriber::SubscriberConfig::VideoSink(const FunctionCallbackInfo<Value>& 
   assert(self);
   self->video_sink_ = sink;
   if (2 == args.Length()) {
-    self->video_sink_filename_ = Util::ToString(args[1]);
+    self->video_sink_filename_ = ToString(args[1]);
   } else {
     self->video_sink_filename_ = "";
   }
   args.GetReturnValue().Set(args.Holder());
 }
 
-void Subscriber::SubscriberConfig::FFMpegSink(const FunctionCallbackInfo<Value>& args) {
+void Subscriber::SubscriberConfig::ffmpegSink(const FunctionCallbackInfo<Value>& args) {
   auto output = ""s;
-  if (!Util::CheckArgs("ffmpegSink", args, 2, 2,
+  if (!CheckArgs("ffmpegSink", args, 2, 2,
         [&output](const Local<Value> arg0, string& err_msg) {
           if (!arg0->IsString()) return false;
-          output = Util::ToString(arg0);
+          output = ToString(arg0);
           if (output.empty()) {
             err_msg = "output cannot be empty";
             return false;
@@ -382,24 +378,24 @@ void Subscriber::SubscriberConfig::FFMpegSink(const FunctionCallbackInfo<Value>&
   SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
   assert(self);
   self->ffmpeg_output_ = output;
-  self->ffmpeg_param_ = Util::ToString(args[1]);
+  self->ffmpeg_param_ = ToString(args[1]);
   args.GetReturnValue().Set(args.Holder());
 }
 
-void Subscriber::SubscriberConfig::SubscriptionErrorRetry(const FunctionCallbackInfo<Value>& args) {
+void Subscriber::SubscriberConfig::subscriptionErrorRetry(const FunctionCallbackInfo<Value>& args) {
   auto max_retries = 0u;
   auto progression = 0.0;
-  if (!Util::CheckArgs("subscriptionErrorRetry", args, 3, 3,
+  if (!CheckArgs("subscriptionErrorRetry", args, 3, 3,
     [&max_retries](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsUint32()) return false;
-      max_retries = Util::ToUint32(arg0);
+      max_retries = ToUint32(arg0);
       return true;
     },
     [](const Local<Value> arg1, string& err_msg) { return arg1->IsUint32(); },
     [&max_retries, &progression](const Local<Value> arg2, string& err_msg) {
       if (!arg2->IsNumber()) return false;
       if (0 < max_retries) {
-        progression = Util::ToDouble(arg2);
+        progression = ToDouble(arg2);
       }
       if (progression < 1.0) {
         err_msg = "retry delay progression must be 1.0 or bigger";
@@ -411,16 +407,16 @@ void Subscriber::SubscriberConfig::SubscriptionErrorRetry(const FunctionCallback
   SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
   assert(self);
   self->config_.err_max_retries = max_retries;
-  self->config_.err_retry_delay_init_ms = Util::ToUint32(args[1]);;
+  self->config_.err_retry_delay_init_ms = ToUint32(args[1]);;
   self->config_.err_retry_delay_progression = progression;
   args.GetReturnValue().Set(args.Holder());
 }
 
-void Subscriber::On(const FunctionCallbackInfo<Value>& args) {
-  if (!Util::CheckArgs("on", args, 2, 2,
+void Subscriber::on(const FunctionCallbackInfo<Value>& args) {
+  if (!CheckArgs("on", args, 2, 2,
     [](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
-      auto event = Util::ToString(arg0);
+      auto event = ToString(arg0);
       return ("error" == event);
     },
     [](const Local<Value> arg1, string& err_msg) { return arg1->IsFunction(); })) return;
@@ -431,8 +427,8 @@ void Subscriber::On(const FunctionCallbackInfo<Value>& args) {
   self->error_event_.AddListener(Local<Function>::Cast(args[1]));
 }
 
-void Subscriber::Start(const FunctionCallbackInfo<Value>& args) {
-  if (!Util::CheckArgs("start", args, 0, 0)) return;
+void Subscriber::start(const FunctionCallbackInfo<Value>& args) {
+  if (!CheckArgs("start", args, 0, 0)) return;
   Subscriber* self = Unwrap<Subscriber>(args.Holder());
   assert(self);
 
@@ -446,6 +442,9 @@ void Subscriber::Start(const FunctionCallbackInfo<Value>& args) {
   }
 
   self->CreateSinks(*config);
+
+  // starts event emission
+  self->error_event_.Start();
 
   // Lazy init of facade
   if (!self->facade_) {
@@ -538,15 +537,15 @@ void Subscriber::NotifyError(const string& err) {
   if (err.empty()) {
     args.emplace_back(Undefined(Isolate::GetCurrent()));
   } else {
-    args.emplace_back(Exception::Error(Util::ToLocalString(err)));
+    args.emplace_back(Exception::Error(ToLocalString(err)));
   }
   error_event_.Emit(args);
 }
 
-void Subscriber::Stop(const FunctionCallbackInfo<Value>& args) {
+void Subscriber::stop(const FunctionCallbackInfo<Value>& args) {
   v8::HandleScope scope(args.GetIsolate());
 
-  if (!Util::CheckArgs("stop", args, 0, 1,
+  if (!CheckArgs("stop", args, 0, 1,
     [](const Local<Value> arg0, string& err_msg) { return arg0->IsFunction(); }
   )) return;
   Subscriber* self = Unwrap<Subscriber>(args.Holder());
@@ -556,10 +555,10 @@ void Subscriber::Stop(const FunctionCallbackInfo<Value>& args) {
 
   self->error_event_.Stop();
 
-  auto isolate = args.GetIsolate();
   if (1 == args.Length()) {
     self->stop_callback_.SetCallbackFn(Local<Function>::Cast(args[0]));
   } else {
+    auto isolate = args.GetIsolate();
     self->stop_callback_.SetCallbackFn(
                                Function::New(isolate->GetCurrentContext(),
                                    [](const FunctionCallbackInfo<Value>& args){}).ToLocalChecked());
@@ -569,7 +568,7 @@ void Subscriber::Stop(const FunctionCallbackInfo<Value>& args) {
     // Stopped before Start.
     // calling on_ended listeners with error : that's the same as subscriber's behavior.
     vector<Local<Value>> args;
-    args.emplace_back(Util::ToLocalValue(false));
+    args.emplace_back(ToLocalValue(false));
     self->stop_callback_.Call(args);
     return;
   }
@@ -579,7 +578,7 @@ void Subscriber::Stop(const FunctionCallbackInfo<Value>& args) {
     // if (ex) {
     //   AT_LOG_ERROR(self->log_, "Stop callback with exception: " << ex);
     //   auto argc = 1;
-    //   Local<Value> argv[] = { Util::ToLocalValue(false) };
+    //   Local<Value> argv[] = { ToLocalValue(false) };
     //   self->stop_callback_->Call(context, Null(Isolate::GetCurrent()), argc, argv).IsEmpty();
     //   return;
     // }
@@ -587,8 +586,8 @@ void Subscriber::Stop(const FunctionCallbackInfo<Value>& args) {
   });
 }
 
-void Subscriber::SubscriberConfig::Verify(const FunctionCallbackInfo<Value>& args) {
-  if (!Util::CheckArgs("verify", args, 0, 0)) return;
+void Subscriber::SubscriberConfig::verify(const FunctionCallbackInfo<Value>& args) {
+  if (!CheckArgs("verify", args, 0, 0)) return;
   SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
   assert(self);
   self->VerifyConfigIntegrity(args);
@@ -625,7 +624,7 @@ bool Subscriber::SubscriberConfig::VerifyConfigIntegrity(const FunctionCallbackI
 
   if (!err.empty()) {
     AT_LOG_WARNING(log_, err);
-    Util::ThrowException(args, Exception::Error, err);
+    ThrowException(args, Exception::Error, err);
     return false;
   } else {
     AT_LOG_INFO(log_, "Configuration verified OK");
@@ -633,7 +632,7 @@ bool Subscriber::SubscriberConfig::VerifyConfigIntegrity(const FunctionCallbackI
   }
 }
 
-void Subscriber::SubscriberConfig::ToObject(const v8::FunctionCallbackInfo<v8::Value>& args) {
+void Subscriber::SubscriberConfig::toObject(const v8::FunctionCallbackInfo<v8::Value>& args) {
   SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
   assert(self);
   args.GetReturnValue().Set(self->ToObjectImpl());
@@ -644,72 +643,72 @@ Local<Object> Subscriber::SubscriberConfig::ToObjectImpl() const {
   auto context = isolate->GetCurrentContext();
   auto obj = Object::New(isolate);
   auto bixby = Object::New(isolate);
-  obj->Set(context, Util::ToLocalString("bixby"), bixby).FromJust();
-  bixby->Set(context, Util::ToLocalString("host"),
-                      Util::ToLocalString(config_.bixby_endpoint.host())).FromJust();
-  bixby->Set(context, Util::ToLocalString("port"),
-                      Util::ToLocalInteger(config_.bixby_endpoint.port())).FromJust();
+  obj->Set(context, ToLocalString("bixby"), bixby).FromJust();
+  bixby->Set(context, ToLocalString("host"),
+                      ToLocalString(config_.bixby_endpoint.host())).FromJust();
+  bixby->Set(context, ToLocalString("port"),
+                      ToLocalInteger(config_.bixby_endpoint.port())).FromJust();
   auto allocator = Object::New(isolate);
-  obj->Set(context, Util::ToLocalString("allocator"), allocator).FromJust();
-  allocator->Set(context, Util::ToLocalString("host"),
-                      Util::ToLocalString(config_.bixby_allocator_endpoint.host())).FromJust();
-  allocator->Set(context, Util::ToLocalString("port"),
-                      Util::ToLocalInteger(config_.bixby_allocator_endpoint.port())).FromJust();
-  allocator->Set(context, Util::ToLocalString("loc"),
-                      Util::ToLocalString(config_.alloc_location)).FromJust();
+  obj->Set(context, ToLocalString("allocator"), allocator).FromJust();
+  allocator->Set(context, ToLocalString("host"),
+                      ToLocalString(config_.bixby_allocator_endpoint.host())).FromJust();
+  allocator->Set(context, ToLocalString("port"),
+                      ToLocalInteger(config_.bixby_allocator_endpoint.port())).FromJust();
+  allocator->Set(context, ToLocalString("loc"),
+                      ToLocalString(config_.alloc_location)).FromJust();
   auto notifier = Object::New(isolate);
-  obj->Set(context, Util::ToLocalString("notifier"), notifier).FromJust();
-  notifier->Set(context, Util::ToLocalString("host"),
-                      Util::ToLocalString(config_.notifier_endpoint.host())).FromJust();
-  notifier->Set(context, Util::ToLocalString("port"),
-                      Util::ToLocalInteger(config_.notifier_endpoint.port())).FromJust();
-  notifier->Set(context, Util::ToLocalString("tag"),
-                      Util::ToLocalString(config_.tag)).FromJust();
-  notifier->Set(context, Util::ToLocalString("tls"),
-                      Util::ToLocalBoolean(config_.use_tls_for_notifier)).FromJust();
-  notifier->Set(context, Util::ToLocalString("cert"),
-                      Util::ToLocalBoolean(!config_.no_notifier_cert_check)).FromJust();
-  obj->Set(context, Util::ToLocalString("duration_ms"),
-                      Util::ToLocalInteger(chrono::duration_cast<chrono::milliseconds>(config_.duration).count())).FromJust();
-  obj->Set(context, Util::ToLocalString("userId"),
-                      Util::ToLocalString(config_.user_id)).FromJust();
-  obj->Set(context, Util::ToLocalString("streamURL"),
-                      Util::ToLocalString(config_.stream_url)).FromJust();
-  obj->Set(context, Util::ToLocalString("cert"),
-                      Util::ToLocalBoolean(!config_.no_cert_check)).FromJust();
-  obj->Set(context, Util::ToLocalString("secret"),
-                      Util::ToLocalString(config_.auth_secret)).FromJust();
-  obj->Set(context, Util::ToLocalString("frameInfo"),
-                      Util::ToLocalBoolean(config_.print_frame_info)).FromJust();
+  obj->Set(context, ToLocalString("notifier"), notifier).FromJust();
+  notifier->Set(context, ToLocalString("host"),
+                      ToLocalString(config_.notifier_endpoint.host())).FromJust();
+  notifier->Set(context, ToLocalString("port"),
+                      ToLocalInteger(config_.notifier_endpoint.port())).FromJust();
+  notifier->Set(context, ToLocalString("tag"),
+                      ToLocalString(config_.tag)).FromJust();
+  notifier->Set(context, ToLocalString("tls"),
+                      ToLocalBoolean(config_.use_tls_for_notifier)).FromJust();
+  notifier->Set(context, ToLocalString("cert"),
+                      ToLocalBoolean(!config_.no_notifier_cert_check)).FromJust();
+  obj->Set(context, ToLocalString("duration_ms"),
+                      ToLocalInteger(chrono::duration_cast<chrono::milliseconds>(config_.duration).count())).FromJust();
+  obj->Set(context, ToLocalString("userId"),
+                      ToLocalString(config_.user_id)).FromJust();
+  obj->Set(context, ToLocalString("streamURL"),
+                      ToLocalString(config_.stream_url)).FromJust();
+  obj->Set(context, ToLocalString("cert"),
+                      ToLocalBoolean(!config_.no_cert_check)).FromJust();
+  obj->Set(context, ToLocalString("secret"),
+                      ToLocalString(config_.auth_secret)).FromJust();
+  obj->Set(context, ToLocalString("frameInfo"),
+                      ToLocalBoolean(config_.print_frame_info)).FromJust();
   if (!ffmpeg_output_.empty()) {
     auto ffmpeg = Object::New(isolate);
-    obj->Set(context, Util::ToLocalString("ffmpeg"), ffmpeg).FromJust();
-    ffmpeg->Set(context, Util::ToLocalString("output"),
-                         Util::ToLocalString(ffmpeg_output_)).FromJust();
-    ffmpeg->Set(context, Util::ToLocalString("params"),
-                         Util::ToLocalString(ffmpeg_param_)).FromJust();
+    obj->Set(context, ToLocalString("ffmpeg"), ffmpeg).FromJust();
+    ffmpeg->Set(context, ToLocalString("output"),
+                         ToLocalString(ffmpeg_output_)).FromJust();
+    ffmpeg->Set(context, ToLocalString("params"),
+                         ToLocalString(ffmpeg_param_)).FromJust();
   } else {
     auto audio = Object::New(isolate);
-    obj->Set(context, Util::ToLocalString("audio"), audio).FromJust();
-    audio->Set(context, Util::ToLocalString("sink"),
-                        Util::ToLocalString(EastWood::AudioSinkString(audio_sink_))).FromJust();
-    audio->Set(context, Util::ToLocalString("filename"),
-                        Util::ToLocalString(audio_sink_filename_)).FromJust();
+    obj->Set(context, ToLocalString("audio"), audio).FromJust();
+    audio->Set(context, ToLocalString("sink"),
+                        ToLocalString(EastWood::AudioSinkString(audio_sink_))).FromJust();
+    audio->Set(context, ToLocalString("filename"),
+                        ToLocalString(audio_sink_filename_)).FromJust();
     auto video = Object::New(isolate);
-    obj->Set(context, Util::ToLocalString("video"), video).FromJust();
-    video->Set(context, Util::ToLocalString("sink"),
-                        Util::ToLocalString(EastWood::VideoSinkString(video_sink_))).FromJust();
-    video->Set(context, Util::ToLocalString("filename"),
-                        Util::ToLocalString(video_sink_filename_)).FromJust();
+    obj->Set(context, ToLocalString("video"), video).FromJust();
+    video->Set(context, ToLocalString("sink"),
+                        ToLocalString(EastWood::VideoSinkString(video_sink_))).FromJust();
+    video->Set(context, ToLocalString("filename"),
+                        ToLocalString(video_sink_filename_)).FromJust();
   }
   auto retry = Object::New(isolate);
-  obj->Set(context, Util::ToLocalString("retry"), retry).FromJust();
-  retry->Set(context, Util::ToLocalString("max"),
-                      Util::ToLocalInteger(config_.err_max_retries)).FromJust();
-  retry->Set(context, Util::ToLocalString("initDelay_ms"),
-                      Util::ToLocalInteger(config_.err_retry_delay_init_ms)).FromJust();
-  retry->Set(context, Util::ToLocalString("progression"),
-                      Util::ToLocalNumber(config_.err_retry_delay_progression)).FromJust();
+  obj->Set(context, ToLocalString("retry"), retry).FromJust();
+  retry->Set(context, ToLocalString("max"),
+                      ToLocalInteger(config_.err_max_retries)).FromJust();
+  retry->Set(context, ToLocalString("initDelay_ms"),
+                      ToLocalInteger(config_.err_retry_delay_init_ms)).FromJust();
+  retry->Set(context, ToLocalString("progression"),
+                      ToLocalNumber(config_.err_retry_delay_progression)).FromJust();
   return obj;
 }
 
@@ -719,51 +718,52 @@ Subscriber::SubscriberConfig::SubscriberConfig()
 }
 
 void Subscriber::SubscriberConfig::Init(Local<Object> exports) {
-  Util::InitClass(exports, "SubscriberConfig", New, constructor,
-            Util::Prototype("bixby", Bixby),
-            Util::Prototype("bixbyAllocator", BixbyAllocator),
-            Util::Prototype("streamNotifier", StreamNotifier),
-            Util::Prototype("duration", Duration),
-            Util::Prototype("userId", UserId),
-            Util::Prototype("streamUrl", StreamUrl),
-            Util::Prototype("certCheck", CertCheck),
-            Util::Prototype("authSecret", AuthSecret),
-            Util::Prototype("printFrameInfo", PrintFrameInfo),
-            Util::Prototype("audioSink", AudioSink),
-            Util::Prototype("videoSink", VideoSink),
-            Util::Prototype("ffmpegSink", FFMpegSink),
-            Util::Prototype("subscriptionErrorRetry", SubscriptionErrorRetry),
-            Util::Prototype("verify", Verify),
-            Util::Prototype("toObject", ToObject));
+  InitClass(exports, "SubscriberConfig", New, constructor,
+    AT_ADDON_PROTOTYPE_METHOD(bixby),
+    AT_ADDON_PROTOTYPE_METHOD(bixbyAllocator),
+    AT_ADDON_PROTOTYPE_METHOD(streamNotifier),
+    AT_ADDON_PROTOTYPE_METHOD(duration),
+    AT_ADDON_PROTOTYPE_METHOD(userId),
+    AT_ADDON_PROTOTYPE_METHOD(streamUrl),
+    AT_ADDON_PROTOTYPE_METHOD(certCheck),
+    AT_ADDON_PROTOTYPE_METHOD(authSecret),
+    AT_ADDON_PROTOTYPE_METHOD(printFrameInfo),
+    AT_ADDON_PROTOTYPE_METHOD(audioSink),
+    AT_ADDON_PROTOTYPE_METHOD(videoSink),
+    AT_ADDON_PROTOTYPE_METHOD(ffmpegSink),
+    AT_ADDON_PROTOTYPE_METHOD(subscriptionErrorRetry),
+    AT_ADDON_PROTOTYPE_METHOD(verify),
+    AT_ADDON_PROTOTYPE_METHOD(toObject)
+  );
 }
 
 Local<Object> Subscriber::SubscriberConfig::NewInstance(const FunctionCallbackInfo<Value>& args) {
-  return Util::NewV8Instance(constructor, args);
+  return NewV8Instance(constructor, args);
 }
 
 void Subscriber::SubscriberConfig::New(const FunctionCallbackInfo<Value>& args) {
-  Util::NewCppInstance(args, new SubscriberConfig());
+  NewCppInstance(args, new SubscriberConfig());
 }
 
 
 
 void Subscriber::Init(Local<Object> exports) {
-  Util::InitClass(exports, "Subscriber", New, constructor,
-            Util::Prototype("configuration", Configuration),
-            Util::Prototype("on", On),
-            Util::Prototype("start", Start),
-            Util::Prototype("stop", Stop)
+  InitClass(exports, "Subscriber", New, constructor,
+    AT_ADDON_PROTOTYPE_METHOD(configuration),
+    AT_ADDON_PROTOTYPE_METHOD(on),
+    AT_ADDON_PROTOTYPE_METHOD(start),
+    AT_ADDON_PROTOTYPE_METHOD(stop)
   );
 
   SubscriberConfig::Init(exports);
 }
 
 Local<Object> Subscriber::NewInstance(const FunctionCallbackInfo<Value>& args) {
-  return Util::NewV8Instance(constructor, args);
+  return NewV8Instance(constructor, args);
 }
 
 void Subscriber::New(const FunctionCallbackInfo<Value>& args) {
-  Util::NewCppInstance(args, new Subscriber(args));
+  NewCppInstance(args, new Subscriber(args));
 }
 
 }  // namespace ew

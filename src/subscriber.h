@@ -6,7 +6,6 @@
 #include <node.h>
 #include <node_object_wrap.h>
 
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -18,7 +17,7 @@
 #include "facade/subscriber_facade.h"
 
 #include "eastwood.h"
-#include "addon_util.h"
+#include "util/addon_util.h"
 
 
 namespace ew {
@@ -33,102 +32,102 @@ class Subscriber : public node::ObjectWrap {
     /**
      * Sets bixby endpoint - mutually exclusive to bixby allocator endpoint.
      * C++ Equivalence:
-     * SubscriberConfig& Bixby(const string& host, uint32_t port);
+     * SubscriberConfig& bixby(const string& host, uint32_t port);
      */
-    static void Bixby(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void bixby(const v8::FunctionCallbackInfo<v8::Value>& args);
 
     /**
      * Sets bixby allocator endpoint - mutually exclusive to bixby endpoint.
      * C++ Equivalence:
-     * SubscriberConfig& BixbyAllocator(const string& host, uint32_t port, const string& locationUrlOrIp);
+     * SubscriberConfig& bixbyAllocator(const string& host, uint32_t port, const string& locationUrlOrIp);
      */
-    static void BixbyAllocator(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void bixbyAllocator(const v8::FunctionCallbackInfo<v8::Value>& args);
 
     /**
      * Sets stream notifier endpoint - mutually exclusive to streamUrl.
      * C++ Equivalence:
-     * SubscriberConfig& StreamNotifier(
+     * SubscriberConfig& streamNotifier(
      *         const string& host, uint32_t port, const string& tag,
      *         bool useTls, bool enableCertCheck);
      */
-    static void StreamNotifier(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void streamNotifier(const v8::FunctionCallbackInfo<v8::Value>& args);
 
     /**
      * Sets subscribing duration 'hh:mm:ss' (optional. default is 'infinite')
      * C++ Equivalence:
-     * SubscriberConfig& Duration(const string& duration);
+     * SubscriberConfig& duration(const string& duration);
      */
-    static void Duration(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void duration(const v8::FunctionCallbackInfo<v8::Value>& args);
 
     /**
      * Sets user id (mandatory)
      * C++ Equivalence:
-     * SubscriberConfig& UserId(const string& uid);
+     * SubscriberConfig& userId(const string& uid);
      */
-    static void UserId(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void userId(const v8::FunctionCallbackInfo<v8::Value>& args);
 
     /**
      * Sets stream URL - mutually exclusive to stream-notifier and tag
      * C++ Equivalent:
-     * SubscriberConfig& StreamUrl(const string& streamUrl);
+     * SubscriberConfig& streamUrl(const string& streamUrl);
      */
-    static void StreamUrl(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void streamUrl(const v8::FunctionCallbackInfo<v8::Value>& args);
 
     /**
      * Disables cert check (optional. default is enabled)
      * C++ Equivalence:
-     * SubscriberConfig& CertCheck(bool check);
+     * SubscriberConfig& certCheck(bool check);
      */
-    static void CertCheck(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void certCheck(const v8::FunctionCallbackInfo<v8::Value>& args);
 
     /**
      * Sets auth secret (optional. no auth token is sent if not given)
      * C++ Equivalence:
-     * SubscriberConfig& AuthSecret(const string& secret);
+     * SubscriberConfig& authSecret(const string& secret);
      */
-    static void AuthSecret(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void authSecret(const v8::FunctionCallbackInfo<v8::Value>& args);
 
     /**
      * Enables extra debug log for each video frame (optional. default is off)
      * C++ Equivalence:
-     * SubscriberConfig& PrintFrameInfo(bool print);
+     * SubscriberConfig& printFrameInfo(bool print);
      */
-    static void PrintFrameInfo(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void printFrameInfo(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 // TODO(Art): combine a/v sink
     /**
      * Sets regular audio sink (optional. default is null-sink)
      * Use FFMpegSink() to set up FFMpeg sinks. (these are mutually exclusive)
      * C++ Equivalence:
-     * SubscriberConfig& AudioSink(EastWood::AudioSinkType sink, const string& filename = "");
+     * SubscriberConfig& audioSink(EastWood::AudioSinkType sink, const string& filename = "");
      * @param filename: filename for file sink. (these are mutually exclusive)
      */
-    static void AudioSink(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void audioSink(const v8::FunctionCallbackInfo<v8::Value>& args);
 
     /**
      * Sets regular video sink (optional. default is null-sink)
      * Use FFMpegSink() to set up FFMpeg sinks. (these are mutually exclusive)
      * C++ Equivalence:
-     * SubscriberConfig& VideoSink(EastWood::VideoSinkType sink, const string& filename = "");
+     * SubscriberConfig& videoSink(EastWood::VideoSinkType sink, const string& filename = "");
      * @param filename: filename for file sink, output destination for ffmpeg sink
      * @param param: ffmpeg parameters for ffmpeg sink
      */
-    static void VideoSink(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void videoSink(const v8::FunctionCallbackInfo<v8::Value>& args);
 
     /**
      * Sets FFMpeg audio/video sink (optional. default is regular null-sink)
      * Use AudioSink() and VideoSink to set up regular sinks. (these are mutually exclusive)
      * C++ Equivalence:
-     * SubscriberConfig& FFmpegSink(const string& output, const string& param);
+     * SubscriberConfig& ffmpegSink(const string& output, const string& param);
      * @param output: output destination (filename or rtmp-URL)
      * @param param: ffmpeg parameters. see libew-ffmpeg
      */
-    static void FFMpegSink(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void ffmpegSink(const v8::FunctionCallbackInfo<v8::Value>& args);
 
     /**
      * Sets subscription error retry. (optional. default is no-retry)
      * C++ Equivalence:
-     *     SubscriberConfig& SubscriptionErrorRetry(
+     *     SubscriberConfig& subscriptionErrorRetry(
      *            uint32_t maxRetries, uint32_t initialDelayMS,
      *            float delayProgressionFactor);
      * @param maxRetries: zero disables retry.
@@ -136,22 +135,22 @@ class Subscriber : public node::ObjectWrap {
      * @param delayProgressionFactor: must be 1.0 or above.
      *        delay increases exponentially with this factor.
      */
-    static void SubscriptionErrorRetry(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void subscriptionErrorRetry(const v8::FunctionCallbackInfo<v8::Value>& args);
 
     /**
      * Verifies the given config params. Will be implicitly called by Subscriber::start()
      * C++ Equivalence:
-     *  void Verify() const;
+     *  void verify() const;
      * @throw JS Exception if any problem was found.
      */
-    static void Verify(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void verify(const v8::FunctionCallbackInfo<v8::Value>& args);
 
     /**
      * Returns an JavaScript Object that contains a copy of current configuration.
      * C++ Equivalence:
-     * void ToObject() const;
+     * void toObject() const;
      */
-    static void ToObject(const v8::FunctionCallbackInfo<v8::Value>& args);
+    static void toObject(const v8::FunctionCallbackInfo<v8::Value>& args);
 
     /// @internal constructed only (indirectly) by Subscriber
     SubscriberConfig();
@@ -187,14 +186,14 @@ class Subscriber : public node::ObjectWrap {
    * The configuration is available only until Start() is called.
    * The configuration object setters can be chain-called. Ex) Configuration().bixbyEndPoint(xxx).userId(yyy)...
    * C++ Equivalent:
-   * SubscriberConfig& Configuration();
+   * SubscriberConfig& configuration();
    */
-  static void Configuration(const v8::FunctionCallbackInfo<v8::Value>& args);
+  static void configuration(const v8::FunctionCallbackInfo<v8::Value>& args);
 
   /**
    * Registers event listener.
    * C++ Equivalence:
-   * void On(const string& name, v8::Function callback)
+   * void on(const string& name, v8::Function callback)
    * @param name : 'error' is the only event at this mement.
    * @param callback : function(err, subscriber)
    *
@@ -202,7 +201,7 @@ class Subscriber : public node::ObjectWrap {
    * If FFMpeg sinks are used, @a err in "on error" callback may contain string either 'idle timeout' or 'output failure'
    * For all sink types, other string in @a err maybe notified.
    */
-  static void On(const v8::FunctionCallbackInfo<v8::Value>& args);
+  static void on(const v8::FunctionCallbackInfo<v8::Value>& args);
 
   static constexpr auto kErrorIdleTimeout = "idle timeout";
   static constexpr auto kErrorOutputFailure = "output failure";
@@ -210,17 +209,17 @@ class Subscriber : public node::ObjectWrap {
   /**
    * Starts the subscription.
    * C++ Equivalent:
-   * void Start();
+   * void start();
    * @throw exception if configuration is incomplete or incorrect.
    */
-  static void Start(const v8::FunctionCallbackInfo<v8::Value>& args);
+  static void start(const v8::FunctionCallbackInfo<v8::Value>& args);
 
   /**
    * Stops the subscription
    * C++ Equivalent:
-   * void Stop(function<void(bool)>);
+   * void stop(function<void(bool)>);
    */
-  static void Stop(const v8::FunctionCallbackInfo<v8::Value>& args);
+  static void stop(const v8::FunctionCallbackInfo<v8::Value>& args);
 
   /// @internal Used for V8 framework
   static void Init(v8::Local<v8::Object> exports);
