@@ -5,9 +5,6 @@
 #include <functional>
 #include <stdexcept>
 
-// TODO(Art): temp
-#include <iostream>
-
 #include "addon_util.h"
 
 namespace at {
@@ -150,6 +147,10 @@ Local<Value> ToLocalValue(const string& value) {
   return ToLocalString(value);
 }
 
+Local<Value> ToLocalValue(const V8Exception& ex) {
+  return ex.ToV8();
+}
+
 Local<Object> NewV8Instance(Persistent<Function>& constructor, const FunctionCallbackInfo<Value>& args) {
   auto isolate = args.GetIsolate();
 
@@ -179,21 +180,15 @@ BlockingWorker* BlockingWorker::New() {
 
 void BlockingWorker::StartWork(function<void()> after_fn) {
   if (queued_) return;
-// TODO(Art): temp
-cout << "Starting worker " << this << " " << queued_ << "\n";
-
   after_fn_ = after_fn;
-  uv_queue_work(uv_default_loop(), &work_, KeepAliveUntilFuture, Finish);
+  auto r = uv_queue_work(uv_default_loop(), &work_, KeepAliveUntilFuture, Finish);
+  if (0 != r) {
+    // what to do?
+  }
   queued_ = true;
-
-// TODO(Art): temp
-cout << "Queued " << this << "\n";
 }
 
 void BlockingWorker::StopWork() {
-// TODO(Art): temp
-cout << "Stopping worker " << this << "\n";
-
   // unblock the work
   promise_.set_value(true);
 }
@@ -201,9 +196,6 @@ cout << "Stopping worker " << this << "\n";
 void BlockingWorker::Finish(uv_work_t* work, int status) {
   auto self = reinterpret_cast<BlockingWorker*>(work->data);
   assert(self);
-
-// TODO(Art): temp
-cout << "Worker Finish " << self << "\n";
 
   if (self->after_fn_) {
     self->after_fn_();
@@ -219,204 +211,127 @@ void BlockingWorker::KeepAliveUntilFuture(uv_work_t* work) {
   assert(self);
   // blocks the work
   self->promise_.get_future().get();
-
-// TODO(Art): temp
-cout << "Worker Unblocked " << self << "\n";
 }
 
-// CallbackInvoker
+// -------------------------------
 
-CallbackInvoker::CallbackInvoker()
-  : worker_(BlockingWorker::New()) {
+// CallbackInvokerBase
+
+CallbackInvokerBase::CallbackInvokerBase()
+  : worker_(BlockingWorker::New())
+  , to_call_(false) {
 }
 
-CallbackInvoker::CallbackInvoker(PersistentFunctionCopyable cb_func) {
+CallbackInvokerBase::CallbackInvokerBase(PersistentFunctionCopyable cb_func) {
   SetCallbackFn(cb_func);
 }
 
-CallbackInvoker::CallbackInvoker(Local<Function> cb_func) {
+CallbackInvokerBase::CallbackInvokerBase(Local<Function> cb_func) {
   SetCallbackFn(cb_func);
 }
 
-void CallbackInvoker::SetCallbackFn(PersistentFunctionCopyable cb_func) {
-// TODO(Art): temp
-cout << "CallbackInvoker SetCallback\n";
+void CallbackInvokerBase::SetCallbackFn(PersistentFunctionCopyable cb_func) {
+  if (to_call_) return;  // duplicate and too late. ignore it
 
-  lock_guard<mutex> guard(args_mutex_);
   cb_func_.Reset(Isolate::GetCurrent(), cb_func);
   worker_->StartWork([this](){ Finish(); });
 }
 
-void CallbackInvoker::SetCallbackFn(v8::Local<v8::Function> cb_func) {
+void CallbackInvokerBase::SetCallbackFn(v8::Local<v8::Function> cb_func) {
   SetCallbackFn(PersistentFunctionCopyable(Isolate::GetCurrent(), cb_func));
 }
 
-void CallbackInvoker::Call(const vector<v8::Local<v8::Value>>& args) {
-// TODO(Art): temp
-cout << "CallbackInvoker Call\n";
-
-  lock_guard<mutex>  guard(args_mutex_);
-  if (to_call_) {
-    // already done
-    return;
-  }
-  to_call_ = true;
-
-  auto isolate = Isolate::GetCurrent();
-
-  args_.reserve(args.size());
-  for (const auto& a : args) {
-    args_.emplace_back(isolate, a);
-  }
-
-  // unblock the worker
-  worker_->StopWork();  // it suicides
-  worker_ = nullptr;
-}
-
-void CallbackInvoker::Stop() {
-  lock_guard<mutex>  guard(args_mutex_);
+void CallbackInvokerBase::Stop() {
   if (to_call_) {
     // race. will stop after the call
     return;
   }
+  FinishWorker();
+}
+
+void CallbackInvokerBase::FinishWorker() {
   if (worker_) {
     worker_->StopWork();  // it suicides
     worker_ = nullptr;
   }
 }
 
-CallbackInvoker::~CallbackInvoker() {
-// TODO(Art): temp
-cout << "~CallbackInvoker\n";
-  if (worker_) {
-    worker_->StopWork();  // it suicides
-    worker_ = nullptr;
-  }
+CallbackInvokerBase::~CallbackInvokerBase() {
+  FinishWorker();
 }
 
-void CallbackInvoker::Finish() {
-  lock_guard<mutex>  guard(args_mutex_);
-  if (to_call_) {
+void CallbackInvokerBase::Finish() {
+  FinishImpl();
+  CleanUp();
+}
 
-// TODO(Art): temp
-cout << "CallbackInvoker Invoking in JS thread\n";
+void CallbackInvokerBase::Invoke(PersistentFunctionCopyable fn, const vector<Local<Value>>& args) {
+  vector<Local<Value>> copy_args = args;
+  Invoke(fn, move(copy_args));
+}
 
-    Invoke(cb_func_, args_);
+void CallbackInvokerBase::Invoke(PersistentFunctionCopyable fn, vector<Local<Value>>&& args) {
+  auto isolate = Isolate::GetCurrent();
+  HandleScope scope(isolate);
+  fn.Get(isolate)->Call(isolate->GetCurrentContext()->Global(), static_cast<int>(args.size()), args.data());
+}
+
+void CallbackInvokerBase::CleanUp() {
+  cb_func_.Reset();
+}
+
+// -------------------------------
+
+// EventEmitterBase
+
+EventEmitterBase::EventEmitterBase()
+  : worker_(BlockingWorker::New()) {
+}
+
+void EventEmitterBase::Start() {
+  lock_guard<mutex>  guard(mutex_);
+  if (!worker_) worker_ = BlockingWorker::New();
+  worker_->StartWork([this](){ Finish(); });
+}
+
+void EventEmitterBase::AddListener(PersistentFunctionCopyable cb_func) {
+  lock_guard<mutex>  guard(mutex_);
+  listeners_.emplace_back(cb_func);
+}
+
+void EventEmitterBase::AddListener(v8::Local<v8::Function> cb_func) {
+  AddListener(PersistentFunctionCopyable(Isolate::GetCurrent(), cb_func));
+}
+
+void EventEmitterBase::Stop() {
+  lock_guard<mutex>  guard(mutex_);
+  if (worker_) worker_->StopWork();  // it suicides
+  worker_ = nullptr;
+}
+
+EventEmitterBase::~EventEmitterBase() {
+  if (worker_) {
+    worker_->StopWork();
   }
   CleanUp();
 }
 
-void CallbackInvoker::Invoke(PersistentFunctionCopyable fn, const vector<PersistentValueCopyable>& args) {
-  auto isolate = Isolate::GetCurrent();
-  HandleScope scope(isolate);
-
-  vector<Local<Value>> call_args;
-  call_args.reserve(args.size());
-  for (const auto& a : args) {
-    call_args.emplace_back(a.Get(isolate));
-  }
-  // node::MakeCallback(isolate, Object::New(isolate), 
-  //                    fn.Get(isolate), static_cast<int>(call_args.size()), call_args.data());
-
-  fn.Get(isolate)->Call(isolate->GetCurrentContext()->Global(), static_cast<int>(call_args.size()), call_args.data());
-}
-
-void CallbackInvoker::CleanUp() {
-  cb_func_.Reset();
-  for (auto& a : args_) {
-    a.Reset();
-  }
-  args_.clear();
-}
-
-// EventEmitter
-
-EventEmitter::EventEmitter()
-  : worker_(BlockingWorker::New()) {
-}
-
-void EventEmitter::Start() {
-// TODO(Art): temp
-cout << "Emitter starting worker\n";
-  worker_->StartWork();
-}
-
-void EventEmitter::AddListener(PersistentFunctionCopyable cb_func) {
+vector<PersistentFunctionCopyable> EventEmitterBase::CopyListeners() {
   lock_guard<mutex>  guard(mutex_);
-  listeners_.emplace_back(cb_func);
-
-// TODO(Art): temp
-cout << "Emitter listener added\n";
+  return listeners_;
 }
 
-void EventEmitter::AddListener(v8::Local<v8::Function> cb_func) {
-  AddListener(PersistentFunctionCopyable(Isolate::GetCurrent(), cb_func));
+void EventEmitterBase::Finish() {
+  FinishImpl();
+  CleanUp();
 }
 
-void EventEmitter::Stop() {
-  worker_->StopWork();  // it suicides
-  worker_ = nullptr;
-}
-
-EventEmitter::~EventEmitter() {
-// TODO(Art): temp
-cout << "~EventEmitter\n";
-  if (worker_) {
-    worker_->StopWork();
-  }
+void EventEmitterBase::CleanUp() {
+  lock_guard<mutex>  guard(mutex_);
   for (auto& lis : listeners_) {
     lis.Reset();
   }
-}
-
-namespace {
-// payload data
-struct EventEmission {
-  vector<PersistentFunctionCopyable> listeners;
-  vector<PersistentValueCopyable> args;
-  uv_async_t async;
-};
-}  // anonymous namespace
-
-void EventEmitter::Emit(const vector<v8::Local<v8::Value>>& args) {
-// TODO(Art): temp
-cout << "Emitting\n";
-
-  auto e = new EventEmission;
-  { lock_guard<mutex>  guard(mutex_);
-    e->listeners = listeners_;
-  }
-  auto isolate = Isolate::GetCurrent();
-  e->args.reserve(args.size());
-  for (const auto& a : args) {
-    e->args.emplace_back(isolate, a);
-  }
-  uv_async_init(uv_default_loop(), &e->async, EmitEvent);
-  e->async.data = e;
-  auto r = uv_async_send(&e->async);
-  if (0 != r) {
-    // what to do?
-  }
-
-// TODO(Art): temp
-cout << "Emitter async_send " << r << "\n";
-}
-
-void EventEmitter::EmitEvent(uv_async_t* handle) {
-// TODO(Art): temp
-cout << "Emitter EmitEvent\n";
-
-  auto e = static_cast<EventEmission*>(handle->data);
-  assert(e);
-
-  for (auto& lis : e->listeners) {
-    CallbackInvoker::Invoke(lis, e->args);
-  }
-
-// TODO(Art): listener.Reset()
-
-  delete e;
+  listeners_.clear();
 }
 
 }  // namespace node_addon

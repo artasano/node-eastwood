@@ -59,9 +59,6 @@ Subscriber::Subscriber(const FunctionCallbackInfo<Value>& args)
 
 Subscriber::~Subscriber() {
   config_.Reset();
-
-// TODO(Art): temp
-std::cout << "~Subscriber\n";
 }
 
 void Subscriber::configuration(const FunctionCallbackInfo<Value>& args) {
@@ -533,13 +530,11 @@ void Subscriber::CreateFFMpegSinks(SubscriberConfig& config) {
 
 void Subscriber::NotifyError(const string& err) {
   AT_LOG_INFO(log_, "Notifying error: " << err);
-  vector<Local<Value>> args;
   if (err.empty()) {
-    args.emplace_back(Undefined(Isolate::GetCurrent()));
+    error_event_.Emit(nullptr);
   } else {
-    args.emplace_back(Exception::Error(ToLocalString(err)));
+    error_event_.Emit(V8Error(err));
   }
-  error_event_.Emit(args);
 }
 
 void Subscriber::stop(const FunctionCallbackInfo<Value>& args) {
@@ -567,9 +562,7 @@ void Subscriber::stop(const FunctionCallbackInfo<Value>& args) {
   if (!self->facade_) {
     // Stopped before Start.
     // calling on_ended listeners with error : that's the same as subscriber's behavior.
-    vector<Local<Value>> args;
-    args.emplace_back(ToLocalValue(false));
-    self->stop_callback_.Call(args);
+    self->stop_callback_.Call(false);
     return;
   }
 
@@ -577,9 +570,7 @@ void Subscriber::stop(const FunctionCallbackInfo<Value>& args) {
     // TODO(Art): write
     // if (ex) {
     //   AT_LOG_ERROR(self->log_, "Stop callback with exception: " << ex);
-    //   auto argc = 1;
-    //   Local<Value> argv[] = { ToLocalValue(false) };
-    //   self->stop_callback_->Call(context, Null(Isolate::GetCurrent()), argc, argv).IsEmpty();
+    //   self->stop_callback_->Call(result);
     //   return;
     // }
     // // TODO: callback

@@ -44,9 +44,9 @@ class EventCallbackClass : public node::ObjectWrap {
   EventCallbackClass() = default;
   ~EventCallbackClass() = default;
 
-  at::node_addon::EventEmitter event1_;
-  at::node_addon::EventEmitter event2_;
-  at::node_addon::CallbackInvoker callback_;
+  at::node_addon::EventEmitter<std::string> event1_;
+  at::node_addon::EventEmitter<std::string> event2_;
+  at::node_addon::CallbackInvoker<at::node_addon::V8Exception, int> callback_;
 
   /// @internal Used by V8 framework
   static void New(const v8::FunctionCallbackInfo<v8::Value>& args);

@@ -4,6 +4,10 @@ var eastwood;
 try {
   eastwood = require('../build/Debug/eastwood_addon');
 } catch(ex) {
-  eastwood = require('../build/Release/eastwood_addon');
+  if ('MODULE_NOT_FOUND' === e.code) {
+    eastwood = require('../build/Release/eastwood_addon');
+  } else {
+    throw e;
+  }
 }
 exports.EastWood = eastwood.EastWood;

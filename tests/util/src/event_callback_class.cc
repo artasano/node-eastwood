@@ -1,31 +1,17 @@
 /// @copyright © 2017 Airtime Media.  All rights reserved.
 
+// TODO(Art): temp
+#include <iostream>
+
 #include <thread>
 #include "event_callback_class.h"
 #include "util/addon_util.h"
 
 namespace addon_test {
 
-// using Context;
-// using Function;
-// using FunctionCallbackInfo;
 using v8::FunctionCallback;
-// using FunctionTemplate;
-// using Isolate;
-// using Local;
-// using Number;
-// using Uint32;
-// using Int32;
-// using Boolean;
-// using Object;
-// using Persistent;
-// using String;
-// using Symbol;
 using v8::Value;
 using v8::Undefined;
-// using Null;
-// using Exception;
-// using PropertyAttribute;
 
 using namespace std;
 using namespace string_literals;
@@ -89,10 +75,7 @@ void EventCallbackClass::fireEvent1InJSThread(const FunctionCallbackInfo<Value>&
   EventCallbackClass* self = Unwrap<EventCallbackClass>(args.Holder());
   assert(self);
 
-  vector<Local<Value>> event_args;
-  auto arg_s = ToString(args[0]);
-  event_args.emplace_back(ToLocalValue(arg_s + " event"));
-  self->event1_.Emit(event_args);
+  self->event1_.Emit(ToString(args[0]) + " event1");
 }
 
 void EventCallbackClass::fireEvent2InWorkerThread(const FunctionCallbackInfo<Value>& args) {
@@ -103,14 +86,17 @@ void EventCallbackClass::fireEvent2InWorkerThread(const FunctionCallbackInfo<Val
   EventCallbackClass* self = Unwrap<EventCallbackClass>(args.Holder());
   assert(self);
 
-  auto isolate = args.GetIsolate();
-  PersistentValueCopyable arg_s(isolate, args[0]);
-  auto t = thread([self, arg_s]() mutable {
-    vector<Local<Value>> event_args;
-    auto s = ToString(arg_s.Get(Isolate::GetCurrent()));
-    event_args.emplace_back(ToLocalValue(s + " event"));
-    self->event1_.Emit(event_args);
-    arg_s.Reset();
+  auto msg = ToString(args[0]);
+
+// TODO(Art): temp
+std::cout << "firing event 2 " << msg << std::endl;
+
+  auto t = thread([self, msg]() {
+
+// TODO(Art): temp
+std::cout << "firing event 2 in thread " << msg << std::endl;
+
+    self->event2_.Emit(msg + " event2");
   });
   t.detach();
 }
@@ -123,12 +109,9 @@ void EventCallbackClass::callbackInJSThread(const FunctionCallbackInfo<Value>& a
   EventCallbackClass* self = Unwrap<EventCallbackClass>(args.Holder());
   assert(self);
 
-  vector<Local<Value>> callback_args;
-  callback_args.emplace_back(Undefined(args.GetIsolate()));
-  auto arg_i = ToInt32(args[0]);
-  callback_args.emplace_back(ToLocalValue(arg_i + 1));
-  self->callback_.Call(callback_args);
+  self->callback_.Call(nullptr, ToInt32(args[0]) + 1);
 }
+
 void EventCallbackClass::callbackInWorkerThread(const FunctionCallbackInfo<Value>& args) {
   if (!CheckArgs("callbackInWorkerThread", args, 1, 1,
     [](const Local<Value> arg0, string& err_msg) { return arg0->IsInt32(); }
@@ -137,15 +120,9 @@ void EventCallbackClass::callbackInWorkerThread(const FunctionCallbackInfo<Value
   EventCallbackClass* self = Unwrap<EventCallbackClass>(args.Holder());
   assert(self);
 
-  auto isolate = args.GetIsolate();
-  PersistentValueCopyable arg_i(isolate, args[0]);
-  thread t([self, arg_i]() mutable {
-    vector<Local<Value>> callback_args;
-    callback_args.emplace_back(Undefined(Isolate::GetCurrent()));
-    auto i = ToInt32(arg_i.Get(Isolate::GetCurrent()));
-    callback_args.emplace_back(ToLocalValue(i + 1));
-    self->callback_.Call(callback_args);
-    arg_i.Reset();
+  auto a0 = ToInt32(args[0]);
+  thread t([self, a0]() {
+    self->callback_.Call(nullptr, a0 + 1);
   });
   t.detach();
 }
@@ -158,14 +135,9 @@ void EventCallbackClass::callbackErrorInWorkerThread(const FunctionCallbackInfo<
   EventCallbackClass* self = Unwrap<EventCallbackClass>(args.Holder());
   assert(self);
 
-  auto isolate = args.GetIsolate();
-  PersistentValueCopyable arg_s(isolate, args[0]);
-  auto t = thread([self, arg_s]() mutable {
-    vector<Local<Value>> callback_args;
-    auto s = ToString(arg_s.Get(Isolate::GetCurrent()));
-    callback_args.emplace_back(Exception::Error(ToLocalString(s + " exception")));
-    self->callback_.Call(callback_args);
-    arg_s.Reset();
+  auto msg = ToString(args[0]);
+  auto t = thread([self, msg]() mutable {
+    self->callback_.Call(at::node_addon::V8TypeError(msg + " exception"));
   });
   t.detach();
 }

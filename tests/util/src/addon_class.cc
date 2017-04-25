@@ -1,28 +1,16 @@
 /// @copyright © 2017 Airtime Media.  All rights reserved.
 
+// TODO(Art): temp
+#include <iostream>
+
 #include "addon_class.h"
 #include "util/addon_util.h"
 
 namespace addon_test {
 
-// using v8::Context;
 using v8::Function;
-// using v8::FunctionCallbackInfo;
-// using v8::FunctionCallback;
-// using v8::FunctionTemplate;
-// using v8::Isolate;
-// using v8::Local;
-// using v8::Number;
-// using v8::Uint32;
-// using v8::Int32;
-// using v8::Boolean;
-// using v8::Object;
+using v8::Object;
 using v8::Persistent;
-// using v8::String;
-// using v8::Symbol;
-// using v8::Value;
-// using v8::Exception;
-// using v8::PropertyAttribute;
 
 using namespace std;
 using namespace string_literals;
@@ -32,9 +20,20 @@ using namespace at::node_addon;
 
 Persistent<Function> AddonClass::constructor;
 
+constexpr int AddonClass::IntConstant1;
+constexpr unsigned int AddonClass::UintConstant1;
+constexpr float AddonClass::FloatConstant1;
+constexpr double AddonClass::DoubleConstant1;
+constexpr bool AddonClass::BoolConstantT;
+constexpr bool AddonClass::BoolConstantF;
+constexpr char AddonClass::CharConstant1;
+constexpr const char* AddonClass::StringConstant1;
+
+
 void AddonClass::Init(Local<Object> exports) {
   InitClass(exports, "AddonClass", New, constructor,
     AT_ADDON_PROTOTYPE_METHOD(testConversionToFromV8),
+    AT_ADDON_PROTOTYPE_METHOD(testConversionFailure),
     AT_ADDON_PROTOTYPE_METHOD(testCheckArgs0),
     AT_ADDON_PROTOTYPE_METHOD(testCheckArgs0or1),
     AT_ADDON_PROTOTYPE_METHOD(testCheckArgs2),
@@ -94,6 +93,23 @@ void AddonClass::testConversionToFromV8(const FunctionCallbackInfo<Value>& args)
   args.GetReturnValue().Set(ToLocalBoolean(true));
 }
 
+void AddonClass::testConversionFailure(const FunctionCallbackInfo<Value>& args) {
+  args.GetReturnValue().Set(ToLocalBoolean(false));
+
+  // boolean conversion never fails
+
+  // doesn't compile
+  // auto i = "xyz"s;
+  // auto local_int = ToLocalInteger(i);
+
+  auto local_obj = Object::New(args.GetIsolate());
+  auto u = ToUint32(local_obj);
+  // it becomes zero
+  if (0 != u) return;
+
+  args.GetReturnValue().Set(ToLocalBoolean(true));
+}
+
 void AddonClass::testCheckArgs0(const FunctionCallbackInfo<Value>& args) {
   if (!CheckArgs("testCheckArgs0", args, 0, 0)) return;
 }
@@ -107,7 +123,15 @@ void AddonClass::testCheckArgs0or1(const FunctionCallbackInfo<Value>& args) {
 void AddonClass::testCheckArgs2(const FunctionCallbackInfo<Value>& args) {
   if (!CheckArgs("testCheckArgs2", args, 2, 2,
     [](const Local<Value> arg0, string& err_msg) { return arg0->IsNumber(); },
-    [](const Local<Value> arg1, string& err_msg) { return arg1->IsUint32(); }
+    [](const Local<Value> arg1, string& err_msg) {
+       if (!arg1->IsUint32()) return false;
+       auto u = ToUint32(arg1);
+       if (10 <= u) {
+         err_msg = "Must be less than 10";
+         return false;
+       }
+       return true;
+    }
   )) return;
   args.GetReturnValue().Set(ToLocalNumber(ToDouble(args[0]) + ToUint32(args[1])));
 }

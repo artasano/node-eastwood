@@ -26,11 +26,13 @@ class AddonClass : public node::ObjectWrap {
  private:
   // bool()
   static void testConversionToFromV8(const v8::FunctionCallbackInfo<v8::Value>& args);
+  // bool()
+  static void testConversionFailure(const v8::FunctionCallbackInfo<v8::Value>& args);
   // void()
   static void testCheckArgs0(const v8::FunctionCallbackInfo<v8::Value>& args);
   // void(function)
   static void testCheckArgs0or1(const v8::FunctionCallbackInfo<v8::Value>& args);
-  // double(double, uint32_t)
+  // double(double, uint32_t), the second arg must be less than 10
   static void testCheckArgs2(const v8::FunctionCallbackInfo<v8::Value>& args);
 
   AddonClass() = default;

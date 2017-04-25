@@ -195,7 +195,7 @@ class Subscriber : public node::ObjectWrap {
    * C++ Equivalence:
    * void on(const string& name, v8::Function callback)
    * @param name : 'error' is the only event at this mement.
-   * @param callback : function(err, subscriber)
+   * @param callback : function(err)
    *
    * Either ended or error callback will be given once started.
    * If FFMpeg sinks are used, @a err in "on error" callback may contain string either 'idle timeout' or 'output failure'
@@ -245,8 +245,8 @@ class Subscriber : public node::ObjectWrap {
 
   mutable at::Logger log_;
   v8::Persistent<v8::Object> config_;
-  at::node_addon::EventEmitter error_event_;
-  at::node_addon::CallbackInvoker stop_callback_;
+  at::node_addon::EventEmitter<at::node_addon::V8Exception> error_event_;
+  at::node_addon::CallbackInvoker<bool> stop_callback_;
   std::unique_ptr<at::eastwood::SubscriberFacade> facade_;
 
   AT_ADDON_CLASS;

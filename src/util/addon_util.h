@@ -9,6 +9,8 @@
 #include <functional>
 #include <future>
 #include <mutex>
+#include <atomic>
+#include <tuple>
 
 #include <node.h>
 #include <uv.h>
@@ -47,7 +49,7 @@ double ToDouble(v8::Local<v8::Value> val);
 /// Converts V8 Bool to bool
 bool ToBool(v8::Local<v8::Value> val);
 
-// ToLocal family
+// ToLocal family - caller needs to hold HandleScope. Otherwise runtime error occurs.
 
 /// Converts C++ bool to v8::Local<v8::Value>
 v8::Local<v8::Value> ToLocalValue(bool value);
@@ -146,6 +148,36 @@ bool CheckArgs(
 
 
 
+/// v8 Exception counterpart to feed into CallbackInvoker::Call and EventEmitter::Emit
+struct V8Exception {
+  explicit V8Exception(const std::string& msg) : msg_(msg) {}
+  std::string msg_;
+  virtual v8::Local<v8::Value> ToV8() const = 0;
+};
+struct V8RangeError : public V8Exception {
+  explicit V8RangeError(const std::string& msg) : V8Exception(msg) {}
+  v8::Local<v8::Value> ToV8() const override { return v8::Exception::RangeError(ToLocalString(msg_)); }
+};
+struct V8ReferenceError : public V8Exception {
+  explicit V8ReferenceError(const std::string& msg) : V8Exception(msg) {}
+  v8::Local<v8::Value> ToV8() const override { return v8::Exception::ReferenceError(ToLocalString(msg_)); }
+};
+struct V8SyntaxError : public V8Exception {
+  explicit V8SyntaxError(const std::string& msg) : V8Exception(msg) {}
+  v8::Local<v8::Value> ToV8() const override { return v8::Exception::SyntaxError(ToLocalString(msg_)); }
+};
+struct V8TypeError : public V8Exception {
+  explicit V8TypeError(const std::string& msg) : V8Exception(msg) {}
+  v8::Local<v8::Value> ToV8() const override { return v8::Exception::TypeError(ToLocalString(msg_)); }
+};
+struct V8Error : public V8Exception {
+  explicit V8Error(const std::string& msg) : V8Exception(msg) {}
+  v8::Local<v8::Value> ToV8() const override { return v8::Exception::Error(ToLocalString(msg_)); }
+};
+
+v8::Local<v8::Value> ToLocalValue(const V8Exception& ex);
+
+
 /**
  * A libuv worker class used by CallbackInvoker and EventEmitter (but generic enough for public use)
  * The responsibility of this class is to hold uv_work in the uv event loop,
@@ -184,59 +216,86 @@ class BlockingWorker {
   static void Finish(uv_work_t* work, int status);
 };
 
+
+
+/// A non-template base class of CallbackInvoker
+class CallbackInvokerBase {
+ public:
+   /// Constructs. This needs to be used in Node JS thread. This ctor does not queue uv_work until callback func is set.
+  CallbackInvokerBase();
+
+   /// Constructs. This needs to be used in Node JS thread. This ctor queues uv_work immediately.
+  explicit CallbackInvokerBase(PersistentFunctionCopyable cb_func);
+  explicit CallbackInvokerBase(v8::Local<v8::Function> cb_func);
+
+  /// If callback function was set in the constructor, or previoud SetCallbackFn call, it'll be replaced.
+  void SetCallbackFn(PersistentFunctionCopyable cb_func);
+  void SetCallbackFn(v8::Local<v8::Function> cb_func);
+
+  /// Finishes the uv worker
+  void Stop();
+
+  ~CallbackInvokerBase();
+
+  /// utility function exposed
+  static void Invoke(PersistentFunctionCopyable fn, const std::vector<v8::Local<v8::Value>>& args);
+  static void Invoke(PersistentFunctionCopyable fn, std::vector<v8::Local<v8::Value>>&& args);
+
+ protected:
+  bool to_call() const { return to_call_; }
+  std::atomic<bool>& to_call() { return to_call_; }
+  void FinishWorker();
+  PersistentFunctionCopyable& cb_func() { return cb_func_; }
+
+ private:
+  BlockingWorker* worker_ = nullptr;
+  PersistentFunctionCopyable cb_func_;
+  std::atomic<bool> to_call_;
+
+  void Finish();
+  virtual void FinishImpl() {};
+  void CleanUp();
+};
+
+
 /**
  * A helper class to hold a Node JS callback function object and call it from any thread.
  * This class holds uv_work in the uv event loop, so Node JS program does not exit until
  * the callback is called (or this class is destroyed).
  */
-class CallbackInvoker {
+template <typename ... Args>
+class CallbackInvoker : public CallbackInvokerBase {
  public:
    /// Constructs. This needs to be used in Node JS thread. This ctor does not queue uv_work until callback func is set.
   CallbackInvoker();
 
+  ~CallbackInvoker();
+
    /// Constructs. This needs to be used in Node JS thread. This ctor queues uv_work immediately.
   explicit CallbackInvoker(PersistentFunctionCopyable cb_func);
   explicit CallbackInvoker(v8::Local<v8::Function> cb_func);
-
-  /// If callback function was set in the constructor, or previoud SetCallbackFn call, it'll be replaced.
-  void SetCallbackFn(PersistentFunctionCopyable cb_func);
-  void SetCallbackFn(v8::Local<v8::Function> cb_func);
 
   /**
    * Sends a call. It can be called in any thread.
    * This removes uv_work from the event loop, so if no other pending task remains, the program ends.
    * @note This can be called only once. If called twice or more, the later calls are ignored.
    */
-  void Call(const std::vector<v8::Local<v8::Value>>& args);
-
-  /// Finishes the uv worker
-  void Stop();
-
-  ~CallbackInvoker();
-
-  /// utility function exposed
-  static void Invoke(PersistentFunctionCopyable fn, const std::vector<PersistentValueCopyable>& args);
+  template <typename ... CallArgs>
+  void Call(CallArgs&&... args);
 
  private:
-  BlockingWorker* worker_ = nullptr;
-  PersistentFunctionCopyable cb_func_;
-  std::mutex args_mutex_;
-  bool to_call_ = false;
-  std::vector<PersistentValueCopyable> args_;
+  std::tuple<std::shared_ptr<Args>...> args_;
 
-  void Finish();
-  void CleanUp();
+  void FinishImpl() override;
 };
 
 
-/**
- * A helper class to hold a Node JS callback function objects and call it from any thread.
- * This class holds uv_work in the uv event loop, so Node JS program does not exit until this class is destroyed.
- */
-class EventEmitter {
+
+/// Non-template base class of EventEmitter
+class EventEmitterBase {
  public:
    /// Constructs. This needs to be used in Node JS thread. Need to call Start() to queue uv_work.
-  EventEmitter();
+  EventEmitterBase();
 
   /// Adds listener (there is no way to remove listener, for now)
   void AddListener(PersistentFunctionCopyable cb_func);
@@ -245,21 +304,43 @@ class EventEmitter {
   /// Queues uv_work so that event emission becomes available.
   void Start();
 
-  /**
-   * Emits an event to all listeners. It can be called in any thread.
-   */
-  void Emit(const std::vector<v8::Local<v8::Value>>& args);
-
   /// Finishes the uv worker
   void Stop();
 
-  ~EventEmitter();
+  ~EventEmitterBase();
+
+ protected:
+  std::vector<PersistentFunctionCopyable> CopyListeners();
 
  private:
   BlockingWorker* worker_ = nullptr;
   std::mutex mutex_;
   std::vector<PersistentFunctionCopyable> listeners_;
 
+  void Finish();
+  virtual void FinishImpl() {};
+  void CleanUp();
+};
+
+
+/**
+ * A helper class to hold a Node JS callback function objects and call it from any thread.
+ * This class holds uv_work in the uv event loop, so Node JS program does not exit until this class is destroyed.
+ */
+template <typename ... Args>
+class EventEmitter : public EventEmitterBase {
+ public:
+   /// Constructs. This needs to be used in Node JS thread. Need to call Start() to queue uv_work.
+  EventEmitter();
+  ~EventEmitter();
+
+  /**
+   * Emits an event to all listeners. It can be called in any thread.
+   */
+  template <typename ... EmitArgs>
+  void Emit(EmitArgs&&... args);
+
+ private:
   static void EmitEvent(uv_async_t* handle);
 };
 
