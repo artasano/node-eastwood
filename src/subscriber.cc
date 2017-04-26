@@ -7,7 +7,7 @@
 #include <boost/property_tree/ini_parser.hpp>
 
 #include "subscriber.h"
-#include "util/addon_util.h"
+#include "addon_util/addon_util.h"
 
 #include "mediacore/base/exception.h"
 #include "eastwood/common/time.h"
@@ -276,83 +276,81 @@ void Subscriber::SubscriberConfig::printFrameInfo(const FunctionCallbackInfo<Val
   args.GetReturnValue().Set(args.Holder());
 }
 
-void Subscriber::SubscriberConfig::audioSink(const FunctionCallbackInfo<Value>& args) {
-  auto sink = EastWood::AudioSink_None;
-  auto filename = ""s;
-  if (!CheckArgs("audioSink", args, 1, 2,
-        [&args, &sink](const Local<Value> arg0, string& err_msg) {
-          if (!arg0->IsInt32()) return false;
-          sink = static_cast<EastWood::AudioSinkType>(ToInt32(arg0));
-          if (sink == EastWood::AudioSink_File) {
-            if (2 == args.Length()) return true;
-            err_msg = "Need sink filename";
-            return false;
-          } else if (sink == EastWood::AudioSink_None) {
-            if (1 == args.Length()) return true;
-            err_msg = "Sink param should not be given";
-            return false;
-          } else {
-            return false;
-          }
-        },
-        [&filename](const Local<Value> arg1, string& err_msg) {
-          if (!arg1->IsString()) return false;
-          filename = ToString(arg1);
-          if (filename.empty()) {
-            err_msg = "Sink filename cannot be empty";
-            return false;
-          }
-          return true;
-        })) {
-    return;
-  }
+namespace {
 
-  SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
-  assert(self);
-  self->audio_sink_ = sink;
-  self->audio_sink_filename_ = filename;
-  args.GetReturnValue().Set(args.Holder());
+bool CheckSinkArg(Isolate* isolate, Local<Context> context, const string& type, Local<Value> arg,
+                  int32_t sinkNoneEnum, int32_t sinkFileEnum,
+                  int32_t& sink_type, string& filename,
+                  string& err_msg) {
+  if (!arg->IsObject()) return false;
+  auto sink_obj = arg->ToObject(context).ToLocalChecked();
+  auto maybe_sink = sink_obj->Get(context, ToLocalString("sink"));
+  if (maybe_sink.IsEmpty()) {
+    err_msg = "Need " + type + " sink type";
+    return false;
+  }
+  auto sink_val = maybe_sink.ToLocalChecked();
+  if (!sink_val->IsInt32()) {
+    err_msg = "Incorrect " + type + " sink type " + Inspect(sink_val);
+    return false;
+  }
+  auto sink = ToInt32(sink_val);
+  if (sinkNoneEnum == sink) {
+    sink_type = sink;
+    return true;
+  }
+  if (sinkFileEnum != sink) {
+    err_msg = "Incorrect " + type + " sink type " + to_string(sink);
+    return false;
+  }
+  auto maybe_file = sink_obj->Get(context, ToLocalString("filename"));
+  if (maybe_file.IsEmpty()) {
+    err_msg = "Need " + type + " sink filename";
+    return false;
+  }
+  auto file = maybe_file.ToLocalChecked();
+  if (!file->IsString()) {
+    err_msg = "Wrong " + type + " sink filename " + Inspect(file);
+    return false;
+  }
+  sink_type = sink;
+  filename = ToString(file);
+  return true;
 }
 
-void Subscriber::SubscriberConfig::videoSink(const FunctionCallbackInfo<Value>& args) {
-  auto sink = EastWood::VideoSink_None;
-  auto filename = ""s;
-  if (!CheckArgs("videoSink", args, 1, 2,
-        [&args, &sink](const Local<Value> arg0, string& err_msg) {
-          if (!arg0->IsInt32()) return false;
-          sink = static_cast<EastWood::VideoSinkType>(ToInt32(arg0));
-          if (sink == EastWood::VideoSink_File) {
-            if (2 == args.Length()) return true;
-            err_msg = "Need sink filename";
-            return false;
-          } else if (sink == EastWood::VideoSink_None) {
-            if (1 == args.Length()) return true;
-            err_msg = "Sink param should not be given";
-            return false;
-          } else {
-            return false;
-          }
+
+}  // anonymous namespace
+
+void Subscriber::SubscriberConfig::sink(const FunctionCallbackInfo<Value>& args) {
+  auto isolate = args.GetIsolate();
+  auto context = isolate->GetCurrentContext();
+  auto audio_sink = static_cast<int32_t>(EastWood::AudioSink_None);
+  auto audio_filename = ""s;
+  auto video_sink = static_cast<int32_t>(EastWood::VideoSink_None);
+  auto video_filename = ""s;
+
+  if (!CheckArgs("sink", args, 2, 2,
+        [isolate, context, &audio_sink, &audio_filename](const Local<Value> arg0, string& err_msg) {
+          return CheckSinkArg(isolate, context, "audio", arg0,
+                              static_cast<int32_t>(EastWood::AudioSink_None),
+                              static_cast<int32_t>(EastWood::AudioSink_File),
+                              audio_sink, audio_filename,
+                              err_msg);
         },
-        [&filename](const Local<Value> arg1, string& err_msg) {
-          if (!arg1->IsString()) return false;
-          filename = ToString(arg1);
-          if (filename.empty()) {
-            err_msg = "Sink filename cannot be empty";
-            return false;
-          }
-          return true;
-        })) {
-      return;
-  }
+        [isolate, context, &video_sink, &video_filename](const Local<Value> arg1, string& err_msg) {
+          return CheckSinkArg(isolate, context, "video", arg1,
+                              static_cast<int32_t>(EastWood::VideoSink_None),
+                              static_cast<int32_t>(EastWood::VideoSink_File),
+                              video_sink, video_filename,
+                              err_msg);
+        })) return;
 
   SubscriberConfig* self = Unwrap<SubscriberConfig>(args.Holder());
   assert(self);
-  self->video_sink_ = sink;
-  if (2 == args.Length()) {
-    self->video_sink_filename_ = ToString(args[1]);
-  } else {
-    self->video_sink_filename_ = "";
-  }
+  self->audio_sink_ = static_cast<EastWood::SinkType>(audio_sink);
+  self->audio_sink_filename_ = audio_filename;
+  self->video_sink_ = static_cast<EastWood::SinkType>(video_sink);
+  self->video_sink_filename_ = video_filename;
   args.GetReturnValue().Set(args.Holder());
 }
 
@@ -414,14 +412,14 @@ void Subscriber::on(const FunctionCallbackInfo<Value>& args) {
     [](const Local<Value> arg0, string& err_msg) {
       if (!arg0->IsString()) return false;
       auto event = ToString(arg0);
-      return ("error" == event);
+      return ("finish" == event);
     },
     [](const Local<Value> arg1, string& err_msg) { return arg1->IsFunction(); })) return;
 
   Subscriber* self = Unwrap<Subscriber>(args.Holder());
   assert(self);
 
-  self->error_event_.AddListener(Local<Function>::Cast(args[1]));
+  self->finish_event_.AddListener(Local<Function>::Cast(args[1]));
 }
 
 void Subscriber::start(const FunctionCallbackInfo<Value>& args) {
@@ -438,29 +436,36 @@ void Subscriber::start(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
-  self->CreateSinks(*config);
-
   // starts event emission
-  self->error_event_.Start();
+  self->finish_event_.Start();
+
+  if (!self->CreateSinks(*config)) {
+    AT_LOG_ERROR(self->log_, "Failed to create sinks");
+    return;
+  }
 
   // Lazy init of facade
   if (!self->facade_) {
-    self->facade_ = make_unique<SubscriberFacade>(EastWood::event_loop, move(config->config_));
+    self->facade_ = SubscriberFacade::New(EastWood::event_loop, move(config->config_));
   }
+
+  self->facade_->on_finished([self]() {
+      self->NotifyFinish();
+  });
   self->facade_->Start();
   AT_LOG_INFO(self->log_, "Started");
 }
 
-void Subscriber::CreateSinks(SubscriberConfig& config) {
+bool Subscriber::CreateSinks(SubscriberConfig& config) {
   // a/v sink integrity has been checked already, so just checking one of them is sufficient here.
   if (!config.ffmpeg_output_.empty()) {
-    CreateFFMpegSinks(config);
+    return CreateFFMpegSinks(config);
   } else {
-    CreateRegularSinks(config);
+    return CreateRegularSinks(config);
   }
 }
 
-void Subscriber::CreateRegularSinks(SubscriberConfig& config) {
+bool Subscriber::CreateRegularSinks(SubscriberConfig& config) {
   at::eastwood::AudioSinkConfig audio_config;
   switch (config.audio_sink_) {
     case EastWood::AudioSink_None:
@@ -494,6 +499,7 @@ void Subscriber::CreateRegularSinks(SubscriberConfig& config) {
   auto a_v_sinks = at::eastwood::StreamSinkFactory().CreateSinks(audio_config, video_config);
   config.config_.audio_sink = move(a_v_sinks.first);
   config.config_.video_sink = move(a_v_sinks.second);
+  return true;
 }
 
 static pair<string, string> SplitKeyValue(const string& token, char separator) {
@@ -505,7 +511,7 @@ static pair<string, string> SplitKeyValue(const string& token, char separator) {
   }
 }
 
-void Subscriber::CreateFFMpegSinks(SubscriberConfig& config) {
+bool Subscriber::CreateFFMpegSinks(SubscriberConfig& config) {
   using at::eastwood::FFmpegStreamSinkFactory;
   FFmpegStreamSinkFactory::OptionMap opts;
   auto params = at::eastwood::StringTokenizer::Tokenize(config.ffmpeg_param_, ' ');
@@ -515,25 +521,29 @@ void Subscriber::CreateFFMpegSinks(SubscriberConfig& config) {
   }
   auto factory = FFmpegStreamSinkFactory(config.ffmpeg_output_, opts);
 
+  bool result = true;
+
   // register error handler
   factory.RegisterRoomIdleTimeoutHandler([this]() {
-    NotifyError(kErrorIdleTimeout);
+    NotifyFinish(kErrorIdleTimeout);
   });
-  factory.RegisterStreamOutputFailureHandler([this]() {
-    NotifyError(kErrorOutputFailure);
+  factory.RegisterStreamOutputFailureHandler([this, &result]() {
+    result = false;  // it can fail in CreateSinks. this is to capture it.
+    NotifyFinish(kErrorOutputFailure);
   });
 
   auto a_v_sinks = factory.CreateSinks(at::eastwood::AudioSinkConfig(), at::eastwood::VideoSinkConfig());
   config.config_.audio_sink = move(a_v_sinks.first);
   config.config_.video_sink = move(a_v_sinks.second);
+  return result;
 }
 
-void Subscriber::NotifyError(const string& err) {
-  AT_LOG_INFO(log_, "Notifying error: " << err);
+void Subscriber::NotifyFinish(const string& err) {
+  AT_LOG_INFO(log_, "Notifying finish: " << err);
   if (err.empty()) {
-    error_event_.Emit(nullptr);
+    finish_event_.Emit(nullptr);
   } else {
-    error_event_.Emit(V8Error(err));
+    finish_event_.Emit(V8Error(err));
   }
 }
 
@@ -546,10 +556,6 @@ void Subscriber::stop(const FunctionCallbackInfo<Value>& args) {
   Subscriber* self = Unwrap<Subscriber>(args.Holder());
   assert(self);
 
-  AT_LOG_INFO(self->log_, "Stopping");
-
-  self->error_event_.Stop();
-
   if (1 == args.Length()) {
     self->stop_callback_.SetCallbackFn(Local<Function>::Cast(args[0]));
   } else {
@@ -559,22 +565,29 @@ void Subscriber::stop(const FunctionCallbackInfo<Value>& args) {
                                    [](const FunctionCallbackInfo<Value>& args){}).ToLocalChecked());
   }
 
-  if (!self->facade_) {
-    // Stopped before Start.
-    // calling on_ended listeners with error : that's the same as subscriber's behavior.
-    self->stop_callback_.Call(false);
+  self->StopFacade([self](exception_ptr ex, bool result) {
+    if (ex) {
+      AT_LOG_ERROR(self->log_, "Stop callback with exception: " << ex);
+      self->stop_callback_.Call(false);
+      return;
+    }
+    self->stop_callback_.Call(result);
+  });
+}
+
+void Subscriber::StopFacade(std::function<void(exception_ptr, bool)> callback) {
+  AT_LOG_INFO(log_, "Stopping");
+
+  finish_event_.Stop();
+
+  if (!facade_) {
+    // Stopped before Start... pretending 'stopped'
+    if (callback) callback(nullptr, true);
     return;
   }
 
-  self->facade_->Stop()->on_result([self](exception_ptr ex, bool result) {
-    // TODO(Art): write
-    // if (ex) {
-    //   AT_LOG_ERROR(self->log_, "Stop callback with exception: " << ex);
-    //   self->stop_callback_->Call(result);
-    //   return;
-    // }
-    // // TODO: callback
-  });
+  if (!callback) callback = [](exception_ptr ex, bool s){};
+  facade_->Stop()->on_result(callback);
 }
 
 void Subscriber::SubscriberConfig::verify(const FunctionCallbackInfo<Value>& args) {
@@ -599,11 +612,11 @@ bool Subscriber::SubscriberConfig::VerifyConfigIntegrity(const FunctionCallbackI
     err += "Stream notifier endpoint and Stream URL are mutually exclusive\n";
   }
   if (ffmpeg_output_.empty()
-   && ((video_sink_ == EastWood::VideoSink_Undefined) && (audio_sink_ == EastWood::AudioSink_Undefined))) {
+   && ((video_sink_ == EastWood::Sink_Undefined) && (audio_sink_ == EastWood::Sink_Undefined))) {
     err += "Need sink\n";
   }
   if (!ffmpeg_output_.empty()
-   && ((video_sink_ != EastWood::VideoSink_Undefined) || (audio_sink_ != EastWood::AudioSink_Undefined))) {
+   && ((video_sink_ != EastWood::Sink_Undefined) || (audio_sink_ != EastWood::Sink_Undefined))) {
     err += "Regular sink and FFMpeg sink are mutually exclusive\n";
   }
   if (config_.duration == at::Duration()) {
@@ -682,13 +695,13 @@ Local<Object> Subscriber::SubscriberConfig::ToObjectImpl() const {
     auto audio = Object::New(isolate);
     obj->Set(context, ToLocalString("audio"), audio).FromJust();
     audio->Set(context, ToLocalString("sink"),
-                        ToLocalString(EastWood::AudioSinkString(audio_sink_))).FromJust();
+                        ToLocalString(EastWood::SinkString(audio_sink_))).FromJust();
     audio->Set(context, ToLocalString("filename"),
                         ToLocalString(audio_sink_filename_)).FromJust();
     auto video = Object::New(isolate);
     obj->Set(context, ToLocalString("video"), video).FromJust();
     video->Set(context, ToLocalString("sink"),
-                        ToLocalString(EastWood::VideoSinkString(video_sink_))).FromJust();
+                        ToLocalString(EastWood::SinkString(video_sink_))).FromJust();
     video->Set(context, ToLocalString("filename"),
                         ToLocalString(video_sink_filename_)).FromJust();
   }
@@ -719,8 +732,7 @@ void Subscriber::SubscriberConfig::Init(Local<Object> exports) {
     AT_ADDON_PROTOTYPE_METHOD(certCheck),
     AT_ADDON_PROTOTYPE_METHOD(authSecret),
     AT_ADDON_PROTOTYPE_METHOD(printFrameInfo),
-    AT_ADDON_PROTOTYPE_METHOD(audioSink),
-    AT_ADDON_PROTOTYPE_METHOD(videoSink),
+    AT_ADDON_PROTOTYPE_METHOD(sink),
     AT_ADDON_PROTOTYPE_METHOD(ffmpegSink),
     AT_ADDON_PROTOTYPE_METHOD(subscriptionErrorRetry),
     AT_ADDON_PROTOTYPE_METHOD(verify),

@@ -16,19 +16,6 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Addon Util Tests",
-      // can't find out how to build test addon... '"preLaunchTask": "build-util-test-addon",
-      // cd tests/util, node-gyp clean configure --debug build
-      "program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
-      "args": [
-        "--no-timeouts", "--colors",
-        "./test-*.js"
-      ],
-      "cwd": "${workspaceRoot}/tests/util"
-    },
-    {
-      "type": "node",
-      "request": "launch",
       "name": "Launch Program",
       "program": "${workspaceRoot}/libs/index.js"
     },

@@ -7,7 +7,7 @@
 
 #include "eastwood.h"
 #include "subscriber.h"
-#include "util/addon_util.h"
+#include "addon_util/addon_util.h"
 
 namespace ew {
 
@@ -72,26 +72,17 @@ EastWood::EastWood(LogLevel level, bool log_to_console, bool log_to_syslog, cons
 EastWood::~EastWood() {
 }
 
-string EastWood::AudioSinkString(AudioSinkType sink) {
+string EastWood::SinkString(SinkType sink) {
   switch (sink) {
     case AudioSink_None:
       return "none";
     case AudioSink_File:
       return "file";
-    case AudioSink_Undefined:
-      return "undefined";
-    default:
-      return "invalid(" + to_string(static_cast<int>(sink)) + ")";
-  }
-}
-
-string EastWood::VideoSinkString(VideoSinkType sink) {
-  switch (sink) {
     case VideoSink_None:
       return "none";
     case VideoSink_File:
       return "file";
-    case VideoSink_Undefined:
+    case Sink_Undefined:
       return "undefined";
     default:
       return "invalid(" + to_string(static_cast<int>(sink)) + ")";

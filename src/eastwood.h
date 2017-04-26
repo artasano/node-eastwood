@@ -7,7 +7,7 @@
 #include <node_object_wrap.h>
 
 #include <string>
-#include "util/addon_util.h"
+#include "addon_util/addon_util.h"
 #include "mediacore/defs.h"
 #include "tecate/defs.h"
 #include "mediacore/async/eventloop.h"
@@ -19,13 +19,14 @@ namespace ew {
 class EastWood : public node::ObjectWrap {
  public:
 
-// TODO(Art): combine a/v sink type
-  enum AudioSinkType { AudioSink_None = 0, AudioSink_File = 1, AudioSink_Undefined = -1 };
-  enum VideoSinkType { VideoSink_None = 0, VideoSink_File = 1, VideoSink_Undefined = -1 };
+  enum SinkType {
+    Sink_Undefined = 0,
+    AudioSink_None, AudioSink_File,
+    VideoSink_None, VideoSink_File
+  };
   enum LogLevel { LogLevel_Fatal = 0, LogLevel_Error = 1, LogLevel_Warning = 2, LogLevel_Info = 3, LogLevel_Debug = 4 };
 
-  static std::string AudioSinkString(AudioSinkType sink);
-  static std::string VideoSinkString(VideoSinkType sink);
+  static std::string SinkString(SinkType sink);
 
   static void Init(v8::Local<v8::Object> exports);
 
@@ -38,9 +39,9 @@ class EastWood : public node::ObjectWrap {
 
   /**
    * Creates a Subscriber instance.
-   * C++ Equivalence:
+   * Signature:
    *  Subscriber createSubscriber();
-   * @param init value
+   * @return Subscriber
    */
   static void createSubscriber(const v8::FunctionCallbackInfo<v8::Value>& args);
 

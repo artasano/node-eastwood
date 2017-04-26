@@ -15,7 +15,7 @@
   "dependencies": {
   },
   "devDependencies": {
-    "node-media-utils": "git+ssh://git@github.com:airtimemedia/node-media-utils.git#1.7",
+    "node-media-utils": "git+ssh://git@github.com:airtimemedia/node-media-utils.git#1.8RC",
     "chai": "2.2.0",
     "mocha": "2.2.4"
   },

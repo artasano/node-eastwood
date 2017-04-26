@@ -16,14 +16,6 @@ describe('EastWood', function() {
     done();
   });
 
-  it('should throw if not created by new', function() {
-    try {
-      var e = EastWood(EastWood.LogLevel_Info, true, true);
-      expect(false).to.be.ok;
-    } catch (e) {
-      expect(e.toString()).to.contain("Use 'new' to instantiate");
-    }
-  });
   it('should throw if insufficient args are given in new', function() {
     try {
       new EastWood();
@@ -832,45 +824,54 @@ describe('EastWood', function() {
         });
       });
 
-      describe('audioSink', function() {
+      describe('sink', function() {
         it('should throw if given insufficient args', function() {
           const ew = new EastWood(testLogLevel, true, false);
           const c = ew.createSubscriber().configuration();
           try {
-            c.audioSink();
+            c.sink();
             expect(false).to.be.ok;
           } catch (e) {
             expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('audioSink');
-            expect(e.toString()).to.contain('Needs 1');
+            expect(e.toString()).to.contain('sink');
+            expect(e.toString()).to.contain('Needs 2');
             expect(e.toString()).to.contain('given 0');
           }
           try {
-            c.audioSink(EastWood.AudioSink_File);
+            c.sink({ sink: EastWood.AudioSink_None });
             expect(false).to.be.ok;
           } catch (e) {
             expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('audioSink');
-            expect(e.toString()).to.contain('Need sink filename');
+            expect(e.toString()).to.contain('sink');
+            expect(e.toString()).to.contain('Needs 2');
+            expect(e.toString()).to.contain('given 1');
+          }
+          try {
+            c.sink({}, { sink: EastWood.VideoSink_File });
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('sink');
+            expect(e.toString()).to.contain('audio sink type');
+          }
+          try {
+            c.sink({ sink: EastWood.AudioSink_None }, { sink: EastWood.VideoSink_File });
+            expect(false).to.be.ok;
+          } catch (e) {
+            expect(e.toString()).to.contain('SubscriberConfig');
+            expect(e.toString()).to.contain('sink');
+            expect(e.toString()).to.contain('video sink filename');
           }
         });
         it('should throw if given more args', function() {
           const ew = new EastWood(testLogLevel, true, false);
           const c = ew.createSubscriber().configuration();
           try {
-            c.audioSink(EastWood.AudioSink_None, 'file123');
+            c.sink({ sink: EastWood.AudioSink_None }, { sink: EastWood.VideoSink_None }, 123);
             expect(false).to.be.ok;
           } catch (e) {
             expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('audioSink');
-            expect(e.toString()).to.contain('Sink param should not be given');
-          }
-          try {
-            c.audioSink(EastWood.AudioSink_File, 'file/name', 123);
-            expect(false).to.be.ok;
-          } catch (e) {
-            expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('audioSink');
+            expect(e.toString()).to.contain('sink');
             expect(e.toString()).to.contain('Takes 2');
             expect(e.toString()).to.contain('given 3');
           }
@@ -879,135 +880,50 @@ describe('EastWood', function() {
           const ew = new EastWood(testLogLevel, true, false);
           const c = ew.createSubscriber().configuration();
           try {
-            c.audioSink('aaa');
+            c.sink('aaa', {});
             expect(false).to.be.ok;
           } catch (e) {
             expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('audioSink');
+            expect(e.toString()).to.contain('sink');
             expect(e.toString()).to.contain('Wrong argument at 0');
             expect(e.toString()).to.contain('given aaa');
           }
           try {
-            c.audioSink(999);
+            c.sink({ sink: 999 }, {});
             expect(false).to.be.ok;
           } catch (e) {
             expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('audioSink');
+            expect(e.toString()).to.contain('sink');
             expect(e.toString()).to.contain('Wrong argument at 0');
-            expect(e.toString()).to.contain('given 999');
+            expect(e.toString()).to.contain('audio sink type 999');
           }
           try {
-            c.audioSink(EastWood.AudioSink_File, 123);
+            c.sink({ sink: EastWood.AudioSink_File, filename: 123 }, { sink: EastWood.VideoSink_None });
             expect(false).to.be.ok;
           } catch (e) {
             expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('audioSink');
-            expect(e.toString()).to.contain('Wrong argument at 1');
-            expect(e.toString()).to.contain('given 123');
+            expect(e.toString()).to.contain('sink');
+            expect(e.toString()).to.contain('Wrong argument at 0');
+            expect(e.toString()).to.contain('audio sink filename 123');
           }
         });
         it('should set if given correct args', function() {
           const ew = new EastWood(testLogLevel, true, false);
           c = ew.createSubscriber().configuration()
-                        .audioSink(EastWood.AudioSink_None)
+                        .sink({ sink: EastWood.AudioSink_None }, { sink: EastWood.VideoSink_None })
                         .toObject();
           expect(c.audio.sink).to.equal('none');
-
-          c = ew.createSubscriber().configuration()
-                        .audioSink(EastWood.AudioSink_File, 'file/name.a')
-                        .toObject();
-          expect(c.audio.sink).to.equal('file');
-          expect(c.audio.filename).to.equal('file/name.a');
-        });
-      });
-
-      describe('videoSink', function() {
-        it('should throw if given insufficient args', function() {
-          const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configuration();
-          try {
-            c.videoSink();
-            expect(false).to.be.ok;
-          } catch (e) {
-            expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('videoSink');
-            expect(e.toString()).to.contain('Needs 1');
-            expect(e.toString()).to.contain('given 0');
-          }
-          try {
-            c.videoSink(EastWood.VideoSink_File);
-            expect(false).to.be.ok;
-          } catch (e) {
-            expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('videoSink');
-            expect(e.toString()).to.contain('Need sink filename');
-          }
-        });
-        it('should throw if given more args', function() {
-          const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configuration();
-          try {
-            c.videoSink(EastWood.VideoSink_None, 'file123');
-            expect(false).to.be.ok;
-          } catch (e) {
-            expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('videoSink');
-            expect(e.toString()).to.contain('Sink param should not be given');
-          }
-          try {
-            c.videoSink(EastWood.VideoSink_File, 'file/name', 123);
-            expect(false).to.be.ok;
-          } catch (e) {
-            expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('videoSink');
-            expect(e.toString()).to.contain('Takes 2');
-            expect(e.toString()).to.contain('given 3');
-          }
-        });
-        it('should throw if given incorrect args', function() {
-          const ew = new EastWood(testLogLevel, true, false);
-          const c = ew.createSubscriber().configuration();
-          try {
-            c.videoSink('aaa');
-            expect(false).to.be.ok;
-          } catch (e) {
-            expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('videoSink');
-            expect(e.toString()).to.contain('Wrong argument at 0');
-            expect(e.toString()).to.contain('given aaa');
-          }
-          try {
-            c.videoSink(11);
-            expect(false).to.be.ok;
-          } catch (e) {
-            expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('videoSink');
-            expect(e.toString()).to.contain('Wrong argument at 0');
-            expect(e.toString()).to.contain('given 11');
-          }
-          try {
-            c.videoSink(EastWood.VideoSink_File, 11);
-            expect(false).to.be.ok;
-          } catch (e) {
-            expect(e.toString()).to.contain('SubscriberConfig');
-            expect(e.toString()).to.contain('videoSink');
-            expect(e.toString()).to.contain('Wrong argument at 1');
-            expect(e.toString()).to.contain('given 11');
-          }
-        });
-        it('should set if given correct args', function() {
-          const ew = new EastWood(testLogLevel, true, false);
-          c = ew.createSubscriber().configuration()
-                        .videoSink(EastWood.VideoSink_None)
-                        .toObject();
           expect(c.video.sink).to.equal('none');
 
           c = ew.createSubscriber().configuration()
-                        .videoSink(EastWood.VideoSink_File, 'file/name.a')
+                        .sink({ sink: EastWood.AudioSink_File, filename: 'file/name.a' },
+                              { sink: EastWood.VideoSink_File, filename: 'file/name.b' })
                         .toObject();
+          expect(c.audio.sink).to.equal('file');
+          expect(c.audio.filename).to.equal('file/name.a');
           expect(c.video.sink).to.equal('file');
-          expect(c.video.filename).to.equal('file/name.a');
-       });
+          expect(c.video.filename).to.equal('file/name.b');
+        });
       });
 
       describe('ffmpegSink', function() {
@@ -1167,7 +1083,7 @@ describe('EastWood', function() {
           const c = ew.createSubscriber().configuration()
             // set other mandatory items
             .streamNotifier('host', 123, 'tag', true, true).userId('uuu').duration('infinite')
-            .audioSink(EastWood.AudioSink_None).videoSink(EastWood.VideoSink_None);
+            .sink({ sink: EastWood.AudioSink_None }, { sink: EastWood.VideoSink_None });
           try {
             c.verify();
             expect(false).to.be.ok;
@@ -1181,7 +1097,7 @@ describe('EastWood', function() {
           const c = ew.createSubscriber().configuration()
             // set other mandatory items
             .streamNotifier('host', 123, 'tag', true, true).userId('uuu').duration('infinite')
-            .audioSink(EastWood.AudioSink_None).videoSink(EastWood.VideoSink_None)
+            .sink({ sink: EastWood.AudioSink_None }, { sink: EastWood.VideoSink_None })
             // and conflicting items
             .bixby('host1', 10)
             .bixbyAllocator('host2', 20, 'locA');
@@ -1198,7 +1114,7 @@ describe('EastWood', function() {
           const c = ew.createSubscriber().configuration()
             // set other mandatory items
             .bixby('host', 123).userId('uuu').duration('infinite')
-            .audioSink(EastWood.AudioSink_None).videoSink(EastWood.VideoSink_None);
+            .sink({ sink: EastWood.AudioSink_None }, { sink: EastWood.VideoSink_None });
           try {
             c.verify();
             expect(false).to.be.ok;
@@ -1212,7 +1128,7 @@ describe('EastWood', function() {
           const c = ew.createSubscriber().configuration()
             // set other mandatory items
             .bixby('host1', 10).userId('uuu').duration('infinite')
-            .audioSink(EastWood.AudioSink_None).videoSink(EastWood.VideoSink_None)
+            .sink({ sink: EastWood.AudioSink_None }, { sink: EastWood.VideoSink_None })
             // and conflicting items
             .streamNotifier('host2', 123, 'tag', true, true)
             .streamUrl('surl2');
@@ -1229,7 +1145,7 @@ describe('EastWood', function() {
           const c = ew.createSubscriber().configuration()
             // set other mandatory items
             .bixby('host1', 10).streamUrl('surl2').userId('uuu')
-            .audioSink(EastWood.AudioSink_None).videoSink(EastWood.VideoSink_None);
+            .sink({ sink: EastWood.AudioSink_None }, { sink: EastWood.VideoSink_None });
           try {
             c.verify();
             expect(false).to.be.ok;
@@ -1243,7 +1159,7 @@ describe('EastWood', function() {
           const c = ew.createSubscriber().configuration()
             // set other mandatory items
             .bixby('host1', 10).streamUrl('surl2').duration('infinite')
-            .audioSink(EastWood.AudioSink_None).videoSink(EastWood.VideoSink_None);
+            .sink({ sink: EastWood.AudioSink_None }, { sink: EastWood.VideoSink_None });
           try {
             c.verify();
             expect(false).to.be.ok;
@@ -1271,7 +1187,7 @@ describe('EastWood', function() {
             // set other mandatory items
             .bixby('host1', 10).streamUrl('surl2').duration('infinite').userId('aa')
             // then conflicts
-            .audioSink(EastWood.AudioSink_None).videoSink(EastWood.VideoSink_None)
+            .sink({ sink: EastWood.AudioSink_None }, { sink: EastWood.VideoSink_None })
             .ffmpegSink('z.mp4', '--some-param=123');
           try {
             c.verify();
@@ -1284,36 +1200,29 @@ describe('EastWood', function() {
       });
     });
 
-    describe('Subscriber', function() {
-      it('starts', function(done) {
-        const ew = new EastWood(EastWood.LogLevel_Debug, true, false);  // console-log, no-syslog
-        const sub = ew.createSubscriber()
-        sub.configuration()
-          .bixbyAllocator('media-allocator.eng.airtime.com', 443, 'at-west2')
-          .userId('art123')
-          .streamNotifier('stream-notifier.eng.signal.is', 3301, 'arttest', true, true)  // TLS, cert
-          .authSecret('hello@test-eng')
-          .audioSink(EastWood.AudioSink_None)
-          .videoSink(EastWood.VideoSink_None)
-          .duration('00:00:10');
-        console.log(sub.configuration().toObject());
+    // describe('Subscriber', function() {
+    //   it('starts', function(done) {
+    //     this.timeout(20000);
+    //     const ew = new EastWood(EastWood.LogLevel_Debug, true, false);  // console-log, no-syslog
+    //     const sub = ew.createSubscriber()
+    //     sub.configuration()
+    //       .bixbyAllocator('media-allocator.eng.airtime.com', 8192, 'at-west')
+    //       .userId('art123')
+    //       .streamNotifier('stream-notifier.eng.signal.is', 443, 'arttest', true, true)  // TLS, cert
+    //       .authSecret('hello@test-eng')
+    //       .sink({ sink: EastWood.AudioSink_None }, { sink: EastWood.VideoSink_None })
+    //       .duration('00:00:10');
+    //     console.log(sub.configuration().toObject());
 
-        sub.on("error", function(err) {
-          console.log("Error: " + err);
-        });
+    //     sub.on("finish", function(err) {
+    //       console.log("Finish: " + err);
+    //       sub.stop();
+    //       done();
+    //     });
 
-//        sub.start();
-        sub.stop(function(result) {
-          console.log("Stopped: " + result);
-          done();
-        });
-
-        setTimeout(()=>{
-          console.log("Finished");
-          // done();
-        }, 15000);
-      })
-    });
+    //     sub.start();
+    //   });
+    // });
 
   });
 });
